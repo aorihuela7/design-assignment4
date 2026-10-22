@@ -27,6 +27,15 @@
   --animate-draw: draw 0.25s ease-out;
   --animate-strike: strike 0.3s ease-out;
 
+  /* Something that replaces what was there, like All packed after the takeoff. */
+  --animate-fade-in: fade-in 0.2s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
   @keyframes draw {
     from {
       stroke-dashoffset: 1;

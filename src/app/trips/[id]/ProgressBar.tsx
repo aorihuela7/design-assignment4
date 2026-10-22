@@ -9,6 +9,9 @@ type ProgressBarProps = {
   // Lets the page move focus to the progress line, e.g. after clearing ticks.
   countId: string;
   allPacked: boolean;
+  // The last item was just ticked: "flying" while the plane takes off, then "landed"
+  // as All packed fades in.
+  takeoff: "flying" | "landed" | null;
   // "Forgot something? Add it": takes the person to the Add item field.
   onForgot: () => void;
   // Latest change ("Added Hat to Clothes"), shown on screen and read politely.
@@ -18,7 +21,7 @@ type ProgressBarProps = {
 // Sticks to the top while the list scrolls, so the count and the All packed message
 // are on screen when the last item is ticked, wherever it is. Both lines keep their
 // height whatever they show, so the list never moves under the pointer.
-export function ProgressBar({ packed, total, countId, allPacked, onForgot, message }: ProgressBarProps) {
+export function ProgressBar({ packed, total, countId, allPacked, takeoff, onForgot, message }: ProgressBarProps) {
   // Stuck to the top while the list scrolls under it: then its background and rule
   // run the full window width, so the list clearly passes underneath.
   const bar = useRef<HTMLDivElement>(null);
@@ -32,6 +35,7 @@ export function ProgressBar({ packed, total, countId, allPacked, onForgot, messa
     observer.observe(bar.current);
     return () => observer.disconnect();
   }, []);
+  const flying = allPacked && takeoff === "flying";
 
   return (
     <div
@@ -39,13 +43,17 @@ export function ProgressBar({ packed, total, countId, allPacked, onForgot, messa
       data-stuck={stuck || undefined}
       className="sticky top-0 z-30 border-b border-line bg-canvas pt-2 data-stuck:bleed"
     >
-      {/* Progress, or All packed in its place. */}
+      {/* Progress, or All packed in its place once the plane has taken off. */}
       <div id={countId} tabIndex={-1} className="flex min-h-7 flex-col justify-center rounded">
-        {!allPacked && <RunwayProgress packed={packed} total={total} />}
+        {(!allPacked || flying) && <RunwayProgress packed={packed} total={total} departing={flying} />}
         {/* Always rendered, so All packed is announced when it appears. In the page, not a modal. */}
         <div role="status">
-          {allPacked && (
-            <p className="flex items-center gap-2 font-display text-xl leading-7 font-semibold uppercase tracking-wide text-ink">
+          {allPacked && !flying && (
+            <p
+              className={`flex items-center gap-2 font-display text-xl leading-7 font-semibold uppercase tracking-wide text-ink ${
+                takeoff === "landed" ? "motion-safe:animate-fade-in" : ""
+              }`}
+            >
               {/* The plane, not a tick: a filled tick box read like a checkbox. */}
               <PlaneIcon className="size-5 shrink-0" />
               All packed. Have a good trip.

@@ -12,6 +12,7 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { uniqueCodes } from "@/lib/codes";
 import { formatDay } from "@/lib/dates";
 import { setFlash } from "@/lib/flash";
+import { prefersReducedMotion } from "@/lib/motion";
 import { createId, SECTIONS, updateData, useStorage, type Item, type Section, type Trip } from "@/lib/storage";
 import { groupBySection, isAllPacked, shouldAskNewTrip, untickAll, withItems } from "@/lib/trips";
 import { useNow } from "@/lib/useNow";
@@ -25,6 +26,8 @@ const COUNT_ID = "packed-count";
 const UNDO_BAR_ID = "undo-bar";
 // How long Undo stays after you move away from it.
 const UNDO_MS = 3000;
+// How long the bar's plane takes to leave the runway once the last item is ticked.
+const TAKEOFF_MS = 300;
 
 // When Undo times out while focused, focus moves to the next item on screen
 // (or the previous one, or the Add item field), so it's never lost.
@@ -79,6 +82,8 @@ export function PackingList() {
   const [arrivedId, setArrivedId] = useState<string | null>(null);
   // The item the person just ticked, so only it plays the tick animation.
   const [justPackedId, setJustPackedId] = useState<string | null>(null);
+  // Ticking the last item: the bar's plane takes off, then All packed fades in.
+  const [takeoff, setTakeoff] = useState<"flying" | "landed" | null>(null);
 
   const trip = storage.status === "ready" ? storage.data?.trips.find((t) => t.id === id) : undefined;
 
@@ -142,10 +147,18 @@ export function PackingList() {
     });
   const toggle = (id: string) => {
     const wasPacked = trip.items.find((item) => item.id === id)?.packed;
+    const packsLast = !wasPacked && trip.items.every((item) => item.id === id || item.packed);
     change((items) => items.map((item) => (item.id === id ? { ...item, packed: !item.packed } : item)));
     setJustPackedId(wasPacked ? null : id);
     setFeedback(null);
     setArrivedId(null);
+    // Only the person's own last tick takes off; reduced motion goes straight to All packed.
+    if (packsLast && !prefersReducedMotion()) {
+      setTakeoff("flying");
+      setTimeout(() => setTakeoff((current) => (current === "flying" ? "landed" : current)), TAKEOFF_MS);
+    } else {
+      setTakeoff(null);
+    }
   };
   const allPacked = isAllPacked(trip.items);
   const add = (itemName: string, section: Section) => {
@@ -227,6 +240,7 @@ export function PackingList() {
         total={trip.items.length}
         countId={COUNT_ID}
         allPacked={allPacked}
+        takeoff={takeoff}
         onForgot={() => {
           // Centered, so the sticky bar doesn't cover the field.
           inputRef.current?.scrollIntoView({ block: "center" });
