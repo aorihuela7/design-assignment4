@@ -96,6 +96,45 @@
   border-image: linear-gradient(to top, var(--color-line) 1px, var(--color-canvas) 1px) fill 0 / 0 / 0 100vw;
 }
 
+/* Page transitions (React's <ViewTransition>, on the browser's View Transitions API).
+   A trip's card title morphs into its page title; the rest of the page fades. Clicks
+   pass through to the page while it runs, and reduced motion swaps pages instantly. */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-group(*) {
+  animation-duration: 250ms;
+}
+
+::view-transition-old(.page-out) {
+  animation: 150ms ease-in both page-out;
+}
+
+::view-transition-new(.page-in) {
+  animation: 200ms ease-out both page-in;
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 @layer base {
   body {
     background-color: var(--color-canvas);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useState, ViewTransition, type MouseEvent, type ReactNode } from "react";
 import { formatDay } from "@/lib/dates";
 import { Card, CardLink } from "./Card";
 import { NewBadge } from "./NewBadge";
@@ -19,6 +19,8 @@ type BoardingPassCardProps = {
   href: string;
   // Second link, shown with new items: opens the list ready to add one.
   forgotHref?: string;
+  // Shared with the trip page's title, which this name morphs into on opening.
+  titleTransition: string;
 };
 
 // "N added" counts already shown in this tab, by card link, so a badge stamps in only
@@ -46,6 +48,7 @@ export function BoardingPassCard({
   newCount = 0,
   href,
   forgotHref,
+  titleTransition,
 }: BoardingPassCardProps) {
   const router = useRouter();
   const [departing, setDeparting] = useState(false);
@@ -74,11 +77,13 @@ export function BoardingPassCard({
           <span aria-hidden="true" className="font-mono text-xs leading-none tracking-widest text-muted">
             {code}
           </span>
-          <h2 className={nameClass}>
-            <CardLink href={href} onClick={takeOff}>
-              {name}
-            </CardLink>
-          </h2>
+          <ViewTransition name={titleTransition} share="morph" default="none">
+            <h2 className={nameClass}>
+              <CardLink href={href} onClick={takeOff}>
+                {name}
+              </CardLink>
+            </h2>
+          </ViewTransition>
           {newCount > 0 && (
             <div className="mt-1 flex flex-col items-start">
               <NewBadge stamp={stampBadge}>{`${newCount} added for next trip`}</NewBadge>
@@ -111,8 +116,9 @@ export function BoardingPassCard({
   );
 }
 
+// As wide as its text, so the morph into the page title scales it evenly.
 const nameClass =
-  "font-display text-3xl leading-tight font-semibold uppercase tracking-wide break-words text-ink @md:text-4xl";
+  "w-fit font-display text-3xl leading-tight font-semibold uppercase tracking-wide break-words text-ink @md:text-4xl";
 
 // The ticket shape: the main part, the tear line with its notches, and the stub.
 function Ticket({ interactive = false, main, stub }: { interactive?: boolean; main: ReactNode; stub: ReactNode }) {

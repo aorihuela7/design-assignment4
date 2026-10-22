@@ -112,3 +112,9 @@ export function tripNameProblem(name: string, trips: Trip[]): TripNameProblem | 
   const existing = trips.find((trip) => cleanName(trip.name).toLowerCase() === clean.toLowerCase());
   return existing ? { kind: "duplicate", trip: existing } : null;
 }
+
+// The view transition name shared by a trip's card title and its page title, so
+// opening a trip morphs one into the other.
+export function tripTitleTransition(tripId: string) {
+  return `trip-title-${tripId}`;
+}

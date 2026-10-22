@@ -12,7 +12,7 @@ import { uniqueCodes } from "@/lib/codes";
 import { clearFlash, peekFlash } from "@/lib/flash";
 import { createStarterTrips, isUntouchedStarters } from "@/lib/starters";
 import { createIfMissing, updateData, useStorage, type Trip } from "@/lib/storage";
-import { welcomeBackCount } from "@/lib/trips";
+import { tripTitleTransition, welcomeBackCount } from "@/lib/trips";
 import { useNow } from "@/lib/useNow";
 
 function newestFirst(a: Trip, b: Trip) {
@@ -143,6 +143,7 @@ export function MyTrips() {
                   newCount={trip.items.filter((item) => item.isNew).length}
                   href={`/trips/${trip.id}`}
                   forgotHref={`/trips/${trip.id}?add=1`}
+                  titleTransition={tripTitleTransition(trip.id)}
                 />
               </li>
             ))}

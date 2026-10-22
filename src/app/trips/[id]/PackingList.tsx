@@ -14,7 +14,7 @@ import { formatDay } from "@/lib/dates";
 import { setFlash } from "@/lib/flash";
 import { prefersReducedMotion } from "@/lib/motion";
 import { createId, SECTIONS, updateData, useStorage, type Item, type Section, type Trip } from "@/lib/storage";
-import { groupBySection, isAllPacked, shouldAskNewTrip, untickAll, withItems } from "@/lib/trips";
+import { groupBySection, isAllPacked, shouldAskNewTrip, tripTitleTransition, untickAll, withItems } from "@/lib/trips";
 import { useNow } from "@/lib/useNow";
 import { AddItemForm } from "./AddItemForm";
 import { BACK_TO_MY_TRIPS, ListLoading } from "./ListLoading";
@@ -235,7 +235,12 @@ export function PackingList() {
 
   return (
     // Codes come from all trips in storage order, as on My trips, so they match the card.
-    <Page title={trip.name} back={BACK_TO_MY_TRIPS} code={uniqueCodes(storage.data.trips).get(trip.id)}>
+    <Page
+      title={trip.name}
+      back={BACK_TO_MY_TRIPS}
+      code={uniqueCodes(storage.data.trips).get(trip.id)}
+      titleTransition={tripTitleTransition(trip.id)}
+    >
       <ProgressBar
         packed={packed}
         total={trip.items.length}

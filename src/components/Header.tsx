@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ViewTransition, type ReactNode } from "react";
 
 export const PAGE_TITLE_ID = "page-title";
 
@@ -11,9 +12,11 @@ type HeaderProps = {
   titleLoading?: boolean;
   // A trip's 3-letter code, as on its card, so the page reads as the same ticket. Decorative.
   code?: string;
+  // Shared with the trip's card title, which morphs into this one on opening.
+  titleTransition?: string;
 };
 
-export function Header({ title, isHome = false, titleLoading = false, code }: HeaderProps) {
+export function Header({ title, isHome = false, titleLoading = false, code, titleTransition }: HeaderProps) {
   return (
     <header data-surface="board" className="bg-board text-amber">
       <div className="mx-auto w-full max-w-225 px-4 pt-3 pb-5 sm:px-6">
@@ -31,22 +34,35 @@ export function Header({ title, isHome = false, titleLoading = false, code }: He
             </span>
           )}
         </div>
-        {/* tabIndex -1: pages can move focus here on arrival; no ring, since it isn't a control. */}
-        <h1
-          id={PAGE_TITLE_ID}
-          tabIndex={-1}
-          className="mt-1 font-display text-4xl font-semibold uppercase tracking-wide wrap-anywhere outline-none sm:text-5xl"
-        >
-          {titleLoading ? (
-            <>
-              <span className="sr-only">{title}</span>
-              <span aria-hidden="true" className="inline-block h-[0.7em] w-[6em] max-w-full rounded bg-white/10" />
-            </>
-          ) : (
-            title
-          )}
-        </h1>
+        {/* tabIndex -1: pages can move focus here on arrival; no ring, since it isn't a control.
+            As wide as its text, so the morph from a card scales it evenly. */}
+        <TitleTransition name={titleTransition}>
+          <h1
+            id={PAGE_TITLE_ID}
+            tabIndex={-1}
+            className="mt-1 w-fit font-display text-4xl font-semibold uppercase tracking-wide wrap-anywhere outline-none sm:text-5xl"
+          >
+            {titleLoading ? (
+              <>
+                <span className="sr-only">{title}</span>
+                <span aria-hidden="true" className="inline-block h-[0.7em] w-[6em] max-w-full rounded bg-white/10" />
+              </>
+            ) : (
+              title
+            )}
+          </h1>
+        </TitleTransition>
       </div>
     </header>
+  );
+}
+
+// Only a trip's title takes part in the morph; other titles change with the page.
+function TitleTransition({ name, children }: { name?: string; children: ReactNode }) {
+  if (!name) return children;
+  return (
+    <ViewTransition name={name} share="morph" default="none">
+      {children}
+    </ViewTransition>
   );
 }
