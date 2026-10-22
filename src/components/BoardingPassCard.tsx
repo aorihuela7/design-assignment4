@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type MouseEvent, type ReactNode } from "react";
+import { formatDay } from "@/lib/dates";
 import { Card, CardLink } from "./Card";
 import { NewBadge } from "./NewBadge";
 import { RunwayProgress } from "./RunwayProgress";
@@ -22,14 +23,6 @@ type BoardingPassCardProps = {
 
 // How long the plane takes to run to the end of the runway before the trip opens.
 const TAKEOFF_MS = 350;
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-// "12 Oct". Only called after mount, so the user's time zone is safe to use.
-function formatDay(iso: string) {
-  const date = new Date(iso);
-  return `${date.getDate()} ${MONTHS[date.getMonth()]}`;
-}
 
 // Half-circle notches: a circle in the page color with two border sides colored,
 // rotated 45° so the colored half faces into the card. Sides swap at @md, when the

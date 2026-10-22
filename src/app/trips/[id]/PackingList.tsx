@@ -8,6 +8,7 @@ import { PAGE_TITLE_ID } from "@/components/Header";
 import { Page } from "@/components/Page";
 import { StorageNotice } from "@/components/StorageNotice";
 import { SectionHeading } from "@/components/SectionHeading";
+import { formatDay } from "@/lib/dates";
 import { setFlash } from "@/lib/flash";
 import { createId, SECTIONS, updateData, useStorage, type Item, type Section, type Trip } from "@/lib/storage";
 import { groupBySection, isAllPacked, shouldAskNewTrip, untickAll, withItems } from "@/lib/trips";
@@ -251,12 +252,14 @@ export function PackingList() {
       <StorageNotice problem={storage.problem} />
 
       {/* In the page, not a modal, and it never takes focus on load. */}
-      {now !== null && shouldAskNewTrip(trip, now) && (
+      {now !== null && trip.lastPackedAt && shouldAskNewTrip(trip, now) && (
         <section role="region" aria-labelledby="new-trip-heading">
           <Card className="flex flex-col gap-4">
-            <SectionHeading id="new-trip-heading">
-              Packing for a new trip?
-            </SectionHeading>
+            <div className="flex flex-col gap-1">
+              <SectionHeading id="new-trip-heading">Packing for a new trip?</SectionHeading>
+              {/* Why it's asking. Only after mount, so the date can use the person's time zone. */}
+              <p className="text-muted">Last packed {formatDay(trip.lastPackedAt)}.</p>
+            </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button onClick={() => answerNewTrip(true)}>Clear all ticks</Button>
               <Button onClick={() => answerNewTrip(false)}>Keep them</Button>
