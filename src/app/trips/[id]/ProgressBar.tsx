@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { PlaneIcon } from "@/components/PlaneIcon";
 import { RunwayProgress } from "@/components/RunwayProgress";
 import { TextButton } from "@/components/TextLink";
@@ -19,8 +19,26 @@ type ProgressBarProps = {
 // are on screen when the last item is ticked, wherever it is. Both lines keep their
 // height whatever they show, so the list never moves under the pointer.
 export function ProgressBar({ packed, total, countId, allPacked, onForgot, message }: ProgressBarProps) {
+  // Stuck to the top while the list scrolls under it: then its background and rule
+  // run the full window width, so the list clearly passes underneath.
+  const bar = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    if (!bar.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setStuck(entry.intersectionRatio < 1 && entry.boundingClientRect.top < 1),
+      { rootMargin: "-1px 0px 0px 0px", threshold: [1] },
+    );
+    observer.observe(bar.current);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="sticky top-0 z-30 border-b border-line bg-canvas pt-2">
+    <div
+      ref={bar}
+      data-stuck={stuck || undefined}
+      className="sticky top-0 z-30 border-b border-line bg-canvas pt-2 data-stuck:bleed"
+    >
       {/* Progress, or All packed in its place. */}
       <div id={countId} tabIndex={-1} className="flex min-h-7 flex-col justify-center rounded">
         {!allPacked && <RunwayProgress packed={packed} total={total} />}

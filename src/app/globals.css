@@ -63,6 +63,12 @@
   --font-display: var(--font-barlow-condensed), ui-sans-serif, sans-serif;
 }
 
+/* Paints an element's canvas background and bottom rule across the whole window.
+   Border images drawn past the box never cause horizontal scrolling. */
+@utility bleed {
+  border-image: linear-gradient(to top, var(--color-line) 1px, var(--color-canvas) 1px) fill 0 / 0 / 0 100vw;
+}
+
 @layer base {
   body {
     background-color: var(--color-canvas);
