@@ -6,14 +6,16 @@ type PageProps = {
   title: string;
   // Every page except My trips says where "back" goes.
   back?: { href: string; label: string };
+  // The title isn't known yet (a trip's name is still loading).
+  titleLoading?: boolean;
   children: ReactNode;
 };
 
-export function Page({ title, back, children }: PageProps) {
+export function Page({ title, back, titleLoading = false, children }: PageProps) {
   return (
     <>
       {/* Only My trips has no back link: it's home. */}
-      <Header title={title} isHome={!back} />
+      <Header title={title} isHome={!back} titleLoading={titleLoading} />
       <main className="mx-auto flex w-full max-w-225 flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
         {back && (
           <div className="-mt-2">
