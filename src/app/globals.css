@@ -36,6 +36,20 @@
     }
   }
 
+  /* A panel opening in place (Rename trip, Delete trip): revealed top to bottom. */
+  --animate-reveal: reveal 0.2s ease-out;
+
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      clip-path: inset(0 0 100% 0);
+    }
+    to {
+      opacity: 1;
+      clip-path: inset(0);
+    }
+  }
+
   /* A NEW badge arriving: pressed on like a passport stamp, settling straight. */
   --animate-stamp: stamp 0.2s ease-out;
 

@@ -78,7 +78,7 @@ function DeleteConfirm({ trip, onDelete, onCancel }: { trip: Trip; onDelete: () 
     question.current?.focus();
   }, []);
   return (
-    <Card>
+    <Card className="motion-safe:animate-reveal">
       <div
         role="group"
         aria-labelledby="delete-question"
@@ -148,7 +148,7 @@ function RenameForm({ current, otherTrips, onSave, onCancel }: RenameFormProps) 
   }
 
   return (
-    <Card>
+    <Card className="motion-safe:animate-reveal">
       <form noValidate onSubmit={submit} onKeyDown={onKeyDown} aria-label="Rename trip" className="flex flex-col gap-4">
         <TextField
           ref={inputRef}
