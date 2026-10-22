@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type MouseEvent } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import { Card, CardLink } from "./Card";
 import { NewBadge } from "./NewBadge";
 import { RunwayProgress } from "./RunwayProgress";
@@ -65,14 +65,15 @@ export function BoardingPassCard({
   };
 
   return (
-    <Card interactive padded={false} className="@container">
-      <div className="relative flex flex-col @md:flex-row">
-        <div className="flex min-w-0 flex-1 flex-col gap-1 p-4 @md:p-5">
+    <Ticket
+      interactive
+      main={
+        <>
           {/* Decorative ticket detail; the list name is the text that matters. */}
           <span aria-hidden="true" className="font-mono text-xs leading-none tracking-widest text-muted">
             {code}
           </span>
-          <h2 className="font-display text-3xl leading-tight font-semibold uppercase tracking-wide break-words text-ink @md:text-4xl">
+          <h2 className={nameClass}>
             <CardLink href={href} onClick={takeOff}>
               {name}
             </CardLink>
@@ -89,7 +90,35 @@ export function BoardingPassCard({
               )}
             </div>
           )}
-        </div>
+        </>
+      }
+      stub={
+        <>
+          <RunwayProgress packed={packed} total={total} departing={departing} />
+          {lastPackedAt && (
+            <p className="font-mono text-xs uppercase tracking-wider text-muted">
+              Last packed {formatDay(lastPackedAt)}
+            </p>
+          )}
+          {/* Visual cue only; the list name is the link's accessible name. */}
+          <span aria-hidden="true" className="self-end font-mono text-xs uppercase tracking-wider text-ink">
+            Open →
+          </span>
+        </>
+      }
+    />
+  );
+}
+
+const nameClass =
+  "font-display text-3xl leading-tight font-semibold uppercase tracking-wide break-words text-ink @md:text-4xl";
+
+// The ticket shape: the main part, the tear line with its notches, and the stub.
+function Ticket({ interactive = false, main, stub }: { interactive?: boolean; main: ReactNode; stub: ReactNode }) {
+  return (
+    <Card interactive={interactive} padded={false} className="@container">
+      <div className="relative flex flex-col @md:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-1 p-4 @md:p-5">{main}</div>
 
         <div
           aria-hidden="true"
@@ -101,18 +130,38 @@ export function BoardingPassCard({
         </div>
 
         <div className="flex flex-col justify-center gap-2 rounded-b-[3px] bg-canvas/60 p-4 @md:w-64 @md:rounded-r-[3px] @md:rounded-bl-none @md:p-5">
-          <RunwayProgress packed={packed} total={total} departing={departing} />
-          {lastPackedAt && (
-            <p className="font-mono text-xs uppercase tracking-wider text-muted">
-              Last packed {formatDay(lastPackedAt)}
-            </p>
-          )}
-          {/* Visual cue only; the list name is the link's accessible name. */}
-          <span aria-hidden="true" className="self-end font-mono text-xs uppercase tracking-wider text-ink">
-            Open →
-          </span>
+          {stub}
         </div>
       </div>
     </Card>
+  );
+}
+
+// Shown while trips load: the same ticket, with blank bars where the text goes.
+// Each bar sits in a box with the real text's line height, so nothing moves when
+// the trips arrive.
+export function BoardingPassSkeleton() {
+  return (
+    <Ticket
+      main={
+        <>
+          <span className="h-3 w-8 rounded bg-canvas" />
+          <span className={`${nameClass} flex h-[1.25em] items-center`}>
+            <span className="h-[0.6em] w-[7em] max-w-full rounded bg-canvas" />
+          </span>
+        </>
+      }
+      stub={
+        <>
+          <div className="flex h-6 items-center gap-3">
+            <span className="flex-1 border-t-2 border-dashed border-line" />
+            <span className="h-3 w-28 rounded bg-line/60" />
+          </div>
+          <span className="flex h-4 items-center self-end">
+            <span className="h-3 w-14 rounded bg-line/60" />
+          </span>
+        </>
+      }
+    />
   );
 }

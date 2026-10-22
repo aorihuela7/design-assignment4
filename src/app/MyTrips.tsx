@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BoardingPassCard } from "@/components/BoardingPassCard";
+import { BoardingPassCard, BoardingPassSkeleton } from "@/components/BoardingPassCard";
 import { Button, ButtonLink } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Notice } from "@/components/Notice";
@@ -25,20 +25,18 @@ function addStartersBack() {
   requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-card-link]")?.focus());
 }
 
-// Same on the server and the first client render, so hydration matches.
+// Same on the server and the first client render, so hydration matches. Shaped
+// like the page: the status sits where the New trip row goes, then three tickets.
 function Loading() {
   return (
     <>
-      <p role="status" className="-mt-2 text-muted">
+      <p role="status" className="flex min-h-11 items-center text-muted">
         Loading your trips…
       </p>
       <ul aria-hidden="true" className="flex flex-col gap-8">
         {[0, 1, 2].map((i) => (
           <li key={i}>
-            <Card className="flex flex-col gap-3">
-              <span className="h-7 w-16 rounded bg-canvas" />
-              <span className="h-6 w-48 max-w-full rounded bg-canvas" />
-            </Card>
+            <BoardingPassSkeleton />
           </li>
         ))}
       </ul>
