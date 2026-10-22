@@ -80,7 +80,8 @@ export function ItemRow({ item, onToggle, onRemove, arrived = null, justPacked =
           </span>
           {item.packed && <span className="sr-only"> Packed</span>}
         </span>
-        {item.isNew && <NewBadge />}
+        {/* Added after All packed: the badge stamps in as the row lands. */}
+        {item.isNew && <NewBadge stamp={arrived === "added"} />}
       </label>
       {/* Always visible, never only on hover. Removing is immediate. */}
       <Button variant="subtle" aria-label={`Remove ${item.name}`} onClick={onRemove} className="shrink-0">

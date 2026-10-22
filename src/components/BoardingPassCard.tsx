@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { formatDay } from "@/lib/dates";
 import { Card, CardLink } from "./Card";
 import { NewBadge } from "./NewBadge";
@@ -20,6 +20,10 @@ type BoardingPassCardProps = {
   // Second link, shown with new items: opens the list ready to add one.
   forgotHref?: string;
 };
+
+// "N added" counts already shown in this tab, by card link, so a badge stamps in only
+// the first time a card shows its count. Memory only: never saved, reset on reload.
+const shownNewCounts = new Map<string, number>();
 
 // How long the plane takes to run to the end of the runway before the trip opens.
 const TAKEOFF_MS = 350;
@@ -45,6 +49,10 @@ export function BoardingPassCard({
 }: BoardingPassCardProps) {
   const router = useRouter();
   const [departing, setDeparting] = useState(false);
+  const stampBadge = newCount > 0 && shownNewCounts.get(href) !== newCount;
+  useEffect(() => {
+    shownNewCounts.set(href, newCount);
+  }, [href, newCount]);
 
   // "Despegue": a plain click runs the plane down the runway, then opens the trip.
   // Clicks for a new tab or window, and reduced motion, open straight away.
@@ -73,7 +81,7 @@ export function BoardingPassCard({
           </h2>
           {newCount > 0 && (
             <div className="mt-1 flex flex-col items-start">
-              <NewBadge>{`${newCount} added for next trip`}</NewBadge>
+              <NewBadge stamp={stampBadge}>{`${newCount} added for next trip`}</NewBadge>
               {forgotHref && (
                 // A sibling of the main link, never inside it; z-20 lifts it above the card-wide
                 // hit area. Its 44px target reaches into the card's padding, so the spacing stays even.

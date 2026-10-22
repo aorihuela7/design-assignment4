@@ -36,6 +36,20 @@
     }
   }
 
+  /* A NEW badge arriving: pressed on like a passport stamp, settling straight. */
+  --animate-stamp: stamp 0.2s ease-out;
+
+  @keyframes stamp {
+    from {
+      opacity: 0;
+      scale: 1.15;
+      rotate: -6deg;
+    }
+    60% {
+      opacity: 1;
+    }
+  }
+
   @keyframes draw {
     from {
       stroke-dashoffset: 1;
