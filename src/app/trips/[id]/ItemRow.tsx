@@ -59,7 +59,7 @@ export function ItemRow({ item, onToggle, onRemove, arrived = false, justPacked 
         {item.isNew && <NewBadge />}
       </label>
       {/* Always visible, never only on hover. Removing is immediate. */}
-      <Button variant="quiet" aria-label={`Remove ${item.name}`} onClick={onRemove} className="shrink-0">
+      <Button variant="subtle" aria-label={`Remove ${item.name}`} onClick={onRemove} className="shrink-0">
         Remove
       </Button>
     </li>
