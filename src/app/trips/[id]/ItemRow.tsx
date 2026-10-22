@@ -28,8 +28,9 @@ export function ItemRow({ item, onToggle, onRemove, arrived = false, justPacked 
     <li
       className={`flex items-center gap-2 px-2 first:rounded-t-[3px] last:rounded-b-[3px] hover:bg-canvas has-focus-visible:bg-canvas ${arrived ? "motion-safe:animate-arrive" : ""}`}
     >
-      <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 px-2 py-2">
-        <span className="relative flex size-6 shrink-0">
+      <label className="group/row flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 px-2 py-2">
+        {/* Pressing the row (or Space on the box) presses the box in a little. */}
+        <span className="relative flex size-6 shrink-0 transition-transform duration-150 ease-out motion-safe:group-active/row:scale-90 motion-safe:has-active:scale-90">
           <input
             id={`item-${item.id}`}
             type="checkbox"
