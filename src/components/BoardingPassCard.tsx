@@ -69,7 +69,7 @@ export function BoardingPassCard({
       <div className="relative flex flex-col @md:flex-row">
         <div className="flex min-w-0 flex-1 flex-col gap-1 p-4 @md:p-5">
           {/* Decorative ticket detail; the list name is the text that matters. */}
-          <span aria-hidden="true" className="font-mono text-[0.625rem] leading-none tracking-widest text-muted">
+          <span aria-hidden="true" className="font-mono text-xs leading-none tracking-widest text-muted">
             {code}
           </span>
           <h2 className="font-display text-3xl leading-tight font-semibold uppercase tracking-wide break-words text-ink @md:text-4xl">
@@ -78,15 +78,16 @@ export function BoardingPassCard({
             </CardLink>
           </h2>
           {newCount > 0 && (
-            <span>
+            <div className="mt-1 flex flex-col items-start">
               <NewBadge>{`${newCount} added for next trip`}</NewBadge>
-            </span>
-          )}
-          {newCount > 0 && forgotHref && (
-            // A sibling of the main link, never inside it; z-20 lifts it above the card-wide hit area.
-            <TextLink href={forgotHref} className="relative z-20 self-start">
-              Forgot something? Add it<span className="sr-only"> to {name}</span>
-            </TextLink>
+              {forgotHref && (
+                // A sibling of the main link, never inside it; z-20 lifts it above the card-wide
+                // hit area. Its 44px target reaches into the card's padding, so the spacing stays even.
+                <TextLink href={forgotHref} className="relative z-20 mt-1 -mb-3">
+                  Forgot something? Add it<span className="sr-only"> to {name}</span>
+                </TextLink>
+              )}
+            </div>
           )}
         </div>
 
