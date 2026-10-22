@@ -79,7 +79,8 @@ export function PackingList() {
     return () => clearTimeout(timer);
   }, [pendingId, undoHeld]);
   // The row just added or restored, so it can be highlighted where it lands.
-  const [arrivedId, setArrivedId] = useState<string | null>(null);
+  // Added rows grow in; restored ones fade back in where they were.
+  const [landed, setLanded] = useState<{ id: string; how: "added" | "restored" } | null>(null);
   // The item the person just ticked, so only it plays the tick animation.
   const [justPackedId, setJustPackedId] = useState<string | null>(null);
   // Ticking the last item: the bar's plane takes off, then All packed fades in.
@@ -151,7 +152,7 @@ export function PackingList() {
     change((items) => items.map((item) => (item.id === id ? { ...item, packed: !item.packed } : item)));
     setJustPackedId(wasPacked ? null : id);
     setFeedback(null);
-    setArrivedId(null);
+    setLanded(null);
     // Only the person's own last tick takes off; reduced motion goes straight to All packed.
     if (packsLast && !prefersReducedMotion()) {
       setTakeoff("flying");
@@ -169,7 +170,7 @@ export function PackingList() {
       const forgot = isAllPacked(items);
       return [...items, { id, name: itemName, section, packed: forgot, isNew: forgot }];
     });
-    setArrivedId(id);
+    setLanded({ id, how: "added" });
     setJustPackedId(null);
     // Visible too: the new row may be far down the page.
     setAnnouncement(`Added ${itemName} to ${SECTIONS.find((s) => s.value === section)?.label ?? "Other"}`);
@@ -182,7 +183,7 @@ export function PackingList() {
       return items.filter((item) => item.id !== removed.id);
     });
     setFeedback({ text: `Removed ${removed.name}`, undo: { item: removed, index } });
-    setArrivedId(null);
+    setLanded(null);
     setJustPackedId(null);
     requestAnimationFrame(() => document.getElementById(UNDO_ROW_ID)?.focus());
   };
@@ -192,7 +193,7 @@ export function PackingList() {
       items.some((i) => i.id === item.id) ? items : [...items.slice(0, index), item, ...items.slice(index)],
     );
     setAnnouncement(`Restored ${item.name}`);
-    setArrivedId(item.id);
+    setLanded({ id: item.id, how: "restored" });
     requestAnimationFrame(() => document.getElementById(`item-${item.id}`)?.focus());
   };
   const focusCount = () => requestAnimationFrame(() => document.getElementById(COUNT_ID)?.focus());
@@ -319,7 +320,7 @@ export function PackingList() {
                   <ItemRow
                     key={item.id}
                     item={item}
-                    arrived={item.id === arrivedId}
+                    arrived={landed?.id === item.id ? landed.how : null}
                     justPacked={item.id === justPackedId}
                     onToggle={() => toggle(item.id)}
                     onRemove={() => remove(item)}
