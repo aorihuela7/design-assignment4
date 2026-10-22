@@ -82,13 +82,14 @@ export function undoHoldProps(onHold: UndoHold) {
 }
 
 // Takes the removed item's place for a few seconds, so Undo is right where the
-// item was, for pointer and keyboard alike.
+// item was, for pointer and keyboard alike. Same height as an item row, so the
+// rows below don't move.
 export function RemovedRow({ name, onUndo, onHold }: { name: string; onUndo: () => void; onHold: UndoHold }) {
   return (
-    <li className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1 text-muted" {...undoHoldProps(onHold)}>
+    <li className="flex min-h-11 flex-wrap items-center gap-x-3 px-4 text-muted" {...undoHoldProps(onHold)}>
       <span className="min-w-0 wrap-anywhere">Removed {name}</span>
       <span aria-hidden="true">·</span>
-      <Button id={UNDO_ROW_ID} aria-label={`Undo removing ${name}`} onClick={onUndo}>
+      <Button id={UNDO_ROW_ID} variant="quiet" aria-label={`Undo removing ${name}`} onClick={onUndo}>
         Undo
       </Button>
     </li>
