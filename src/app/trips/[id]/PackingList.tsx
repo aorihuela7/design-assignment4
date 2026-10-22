@@ -231,13 +231,15 @@ export function PackingList() {
         message={
           feedback?.text && (
             <>
-              <p>{feedback.text}</p>
+              {/* One line, so the bar keeps its height; the full text is still read out. */}
+              <p className="min-w-0 truncate">{feedback.text}</p>
               {feedback.undo && (
                 <Button
                   id={UNDO_BAR_ID}
                   {...undoHoldProps(holdUndo)}
                   aria-label={`Undo removing ${feedback.undo.item.name}`}
                   onClick={() => feedback.undo && undoRemove(feedback.undo)}
+                  className="shrink-0"
                 >
                   Undo
                 </Button>

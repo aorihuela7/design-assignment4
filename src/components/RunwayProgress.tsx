@@ -3,15 +3,13 @@ import { PlaneIcon } from "./PlaneIcon";
 type RunwayProgressProps = {
   packed: number;
   total: number;
-  // Lets a page move focus to the count, e.g. after clearing ticks.
-  countId?: string;
   // Opening a trip: the plane runs to the end of the runway and lifts its nose.
   departing?: boolean;
 };
 
 const PLANE_SIZE = 24;
 
-export function RunwayProgress({ packed, total, countId, departing = false }: RunwayProgressProps) {
+export function RunwayProgress({ packed, total, departing = false }: RunwayProgressProps) {
   const percent = departing ? 100 : total > 0 ? Math.min(100, Math.max(0, (packed / total) * 100)) : 0;
   return (
     <div className="flex items-center gap-3">
@@ -28,11 +26,7 @@ export function RunwayProgress({ packed, total, countId, departing = false }: Ru
           style={{ left: `calc(${percent}% - ${(percent / 100) * PLANE_SIZE}px)` }}
         />
       </div>
-      <p
-        id={countId}
-        tabIndex={countId ? -1 : undefined}
-        className="rounded font-mono text-xs whitespace-nowrap uppercase tracking-wider text-ink"
-      >
+      <p className="font-mono text-xs whitespace-nowrap uppercase tracking-wider text-ink">
         {packed} of {total} packed
       </p>
     </div>
