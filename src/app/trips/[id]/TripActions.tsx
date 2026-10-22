@@ -89,17 +89,33 @@ function DeleteConfirm({ trip, onDelete, onCancel }: { trip: Trip; onDelete: () 
           id="delete-question"
           tabIndex={-1}
           ref={question}
-          className="font-semibold text-ink outline-none"
+          className="flex items-start gap-2 font-semibold text-ink outline-none"
         >
-          Delete {trip.name}
-          {items > 0 && ` and its ${items} ${items === 1 ? "item" : "items"}`}? This can’t be undone.
+          <WarningIcon />
+          <span>
+            Delete {trip.name}
+            {items > 0 && ` and its ${items} ${items === 1 ? "item" : "items"}`}? This can’t be undone.
+          </span>
         </p>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button onClick={onDelete}>Delete trip</Button>
+          <Button variant="danger" onClick={onDelete}>
+            Delete trip
+          </Button>
           <Button onClick={onCancel}>Cancel</Button>
         </div>
       </div>
     </Card>
+  );
+}
+
+// A warning sign beside the question, so it never relies on the button alone.
+function WarningIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" className="mt-0.5 size-5 shrink-0">
+      <path d="M8 1.5L15 14.5H1z" fill="currentColor" strokeLinejoin="round" />
+      <path d="M8 6v4" stroke="var(--color-surface)" strokeWidth="1.75" />
+      <circle cx="8" cy="12.25" r="1" fill="var(--color-surface)" />
+    </svg>
   );
 }
 
