@@ -9,9 +9,11 @@ type HeaderProps = {
   isHome?: boolean;
   // While the page's own name is loading: a blank bar on screen, the title for screen readers.
   titleLoading?: boolean;
+  // A trip's 3-letter code, as on its card, so the page reads as the same ticket. Decorative.
+  code?: string;
 };
 
-export function Header({ title, isHome = false, titleLoading = false }: HeaderProps) {
+export function Header({ title, isHome = false, titleLoading = false, code }: HeaderProps) {
   return (
     <header data-surface="board" className="bg-board text-amber">
       <div className="mx-auto w-full max-w-225 px-4 pt-3 pb-5 sm:px-6">
@@ -23,6 +25,11 @@ export function Header({ title, isHome = false, titleLoading = false }: HeaderPr
           >
             Pack Again
           </Link>
+          {code && (
+            <span aria-hidden="true" className="ml-auto">
+              {code}
+            </span>
+          )}
         </div>
         {/* tabIndex -1: pages can move focus here on arrival; no ring, since it isn't a control. */}
         <h1

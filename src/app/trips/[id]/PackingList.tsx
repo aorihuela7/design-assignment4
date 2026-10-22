@@ -9,6 +9,7 @@ import { PAGE_TITLE_ID } from "@/components/Header";
 import { Page } from "@/components/Page";
 import { StorageNotice } from "@/components/StorageNotice";
 import { SectionHeading } from "@/components/SectionHeading";
+import { uniqueCodes } from "@/lib/codes";
 import { formatDay } from "@/lib/dates";
 import { setFlash } from "@/lib/flash";
 import { createId, SECTIONS, updateData, useStorage, type Item, type Section, type Trip } from "@/lib/storage";
@@ -219,7 +220,8 @@ export function PackingList() {
     : trip.items;
 
   return (
-    <Page title={trip.name} back={BACK_TO_MY_TRIPS}>
+    // Codes come from all trips in storage order, as on My trips, so they match the card.
+    <Page title={trip.name} back={BACK_TO_MY_TRIPS} code={uniqueCodes(storage.data.trips).get(trip.id)}>
       <ProgressBar
         packed={packed}
         total={trip.items.length}
