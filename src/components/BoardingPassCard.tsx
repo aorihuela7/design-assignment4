@@ -84,7 +84,7 @@ export function BoardingPassCard({
           )}
           {newCount > 0 && forgotHref && (
             // A sibling of the main link, never inside it; z-20 lifts it above the card-wide hit area.
-            <TextLink href={forgotHref} className="relative z-20 self-start font-mono text-xs uppercase tracking-wider">
+            <TextLink href={forgotHref} className="relative z-20 self-start">
               Forgot something? Add it<span className="sr-only"> to {name}</span>
             </TextLink>
           )}

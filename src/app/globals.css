@@ -57,6 +57,10 @@
   }
 }
 
+/* Type scale. Display (Barlow Condensed, caps): page title 4xl/5xl, trip names
+   on cards 3xl/4xl, section headings 2xl, All packed xl. Body (B612): base, sm
+   for small print. Labels (B612 Mono, caps): sm for buttons and text actions, xs
+   for field labels, counts, badges and ticket details. */
 @theme inline {
   --font-sans: var(--font-b612), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-b612-mono), ui-monospace, monospace;
