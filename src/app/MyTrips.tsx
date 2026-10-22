@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BoardingPassCard, BoardingPassSkeleton } from "@/components/BoardingPassCard";
 import { Button, ButtonLink } from "@/components/Button";
-import { Card } from "@/components/Card";
+import { EmptyState } from "@/components/EmptyState";
 import { Notice } from "@/components/Notice";
 import { Page } from "@/components/Page";
 import { StorageNotice } from "@/components/StorageNotice";
@@ -107,15 +107,18 @@ export function MyTrips() {
 
       {trips.length === 0 ? (
         // Only after the person deleted every list; starters never come back on their own.
-        <Card className="flex flex-col gap-4">
-          <SectionHeading>No trips yet</SectionHeading>
-          <div className="flex flex-col gap-3 sm:flex-row">
+        <EmptyState plane>
+          <div className="flex flex-col gap-1">
+            <SectionHeading>No trips yet</SectionHeading>
+            <p className="text-muted">Make a list once and it’s ready for every trip after.</p>
+          </div>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <ButtonLink variant="primary" href="/trips/new">
               New trip
             </ButtonLink>
             <Button onClick={addStartersBack}>Add the starter trips back</Button>
           </div>
-        </Card>
+        </EmptyState>
       ) : (
         <>
           {/* The primary action stays at the top, beside the intro on wide screens. */}

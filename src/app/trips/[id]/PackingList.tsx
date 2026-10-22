@@ -4,6 +4,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { EmptyState } from "@/components/EmptyState";
 import { PAGE_TITLE_ID } from "@/components/Header";
 import { Page } from "@/components/Page";
 import { StorageNotice } from "@/components/StorageNotice";
@@ -278,9 +279,9 @@ export function PackingList() {
       />
 
       {trip.items.length === 0 && !pending && (
-        <Card>
+        <EmptyState>
           <p>Nothing here yet. Add your first item.</p>
-        </Card>
+        </EmptyState>
       )}
 
       {groupBySection(rows).map((group) => (
