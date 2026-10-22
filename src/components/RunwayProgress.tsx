@@ -32,7 +32,7 @@ export function RunwayProgress({ packed, total, departing = false }: RunwayProgr
           } ${
             departing
               ? "transition-[left,translate,rotate] duration-300 ease-in"
-              : "transition-[left,translate,rotate] duration-500 ease-out"
+              : "transition-[left,translate,rotate] duration-250 ease-out"
           }`}
           // Keeps the plane inside the runway at 0% and 100%.
           style={{ left: `calc(${percent}% - ${(percent / 100) * PLANE_SIZE}px)` }}
