@@ -174,3 +174,41 @@ export function BoardingPassSkeleton() {
     />
   );
 }
+
+// New trip's live preview: the ticket the trip will get, code included, updating as
+// the name is typed. Decorative (the field holds the name), so hidden from screen
+// readers. Once named on Create trip, its title morphs into the new page's title.
+type BoardingPassPreviewProps = { name: string; code: string; titleTransition?: string };
+
+export function BoardingPassPreview({ name, code, titleTransition }: BoardingPassPreviewProps) {
+  const title = name ? (
+    <p className={nameClass}>{name}</p>
+  ) : (
+    <span className={`${nameClass} flex h-[1.25em] items-center`}>
+      <span className="h-[0.6em] w-[7em] max-w-full rounded bg-canvas" />
+    </span>
+  );
+  return (
+    <div aria-hidden="true">
+      <Ticket
+        main={
+          <>
+            {code ? (
+              <span className="font-mono text-xs leading-none tracking-widest text-muted">{code}</span>
+            ) : (
+              <span className="h-3 w-8 rounded bg-canvas" />
+            )}
+            {titleTransition ? (
+              <ViewTransition name={titleTransition} share="morph" default="none">
+                {title}
+              </ViewTransition>
+            ) : (
+              title
+            )}
+          </>
+        }
+        stub={<RunwayProgress packed={0} total={0} />}
+      />
+    </div>
+  );
+}

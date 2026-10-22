@@ -2,15 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { BoardingPassPreview } from "@/components/BoardingPassCard";
 import { Button, ButtonLink } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { TextField } from "@/components/Field";
 import { Page } from "@/components/Page";
 import { StorageNotice } from "@/components/StorageNotice";
 import { tripNameMessage } from "@/components/tripNameMessage";
+import { uniqueCodes } from "@/lib/codes";
 import { createStarterTrips } from "@/lib/starters";
 import { createId, createIfMissing, updateData, useStorage } from "@/lib/storage";
-import { cleanName, tripNameProblem } from "@/lib/trips";
+import { cleanName, tripNameProblem, tripTitleTransition } from "@/lib/trips";
+
+// Stands in for the new trip's id when working out its code; no saved trip has it.
+const PREVIEW_ID = "new-trip-preview";
 
 export function NewTrip() {
   const router = useRouter();
@@ -19,6 +24,9 @@ export function NewTrip() {
   const inputRef = useRef<HTMLInputElement>(null);
   // No errors before the first submit; after it, the error follows what's typed.
   const [attempted, setAttempted] = useState(false);
+  // Set on Create trip, just before leaving, so the preview's title can morph into the
+  // new page's title. (An id can't be made during prerendering.)
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
   // Arriving here first still counts as a first visit: the starter lists come too.
   useEffect(() => {
@@ -28,6 +36,11 @@ export function NewTrip() {
   const problem = storage.status === "ready" ? storage.problem : null;
   const trips = storage.status === "ready" ? (storage.data?.trips ?? []) : [];
   const nameProblem = attempted ? tripNameProblem(name, trips) : null;
+  // The code it will get: worked out with the trip added last, as it will be saved.
+  const previewName = cleanName(name);
+  const previewCode = previewName
+    ? (uniqueCodes([...trips, { id: PREVIEW_ID, name: previewName }]).get(PREVIEW_ID) ?? "")
+    : "";
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -39,6 +52,7 @@ export function NewTrip() {
     }
     const clean = cleanName(name);
     const id = createId();
+    setCreatedId(id);
     const trip = { id, name: clean, items: [], lastPackedAt: null, promptDismissedAt: null, ticksClearedAt: null, updatedAt: new Date().toISOString() };
     updateData((data) => ({ ...data, trips: [...data.trips, trip] }));
     // The empty list focuses its Add item field.
@@ -70,6 +84,18 @@ export function NewTrip() {
             </div>
           </form>
         </Card>
+      )}
+      {problem !== "newer" && (
+        <div className="flex w-full max-w-xl flex-col gap-2">
+          <p aria-hidden="true" className="font-mono text-xs uppercase tracking-wider text-muted">
+            Preview
+          </p>
+          <BoardingPassPreview
+            name={previewName}
+            code={previewCode}
+            titleTransition={createdId ? tripTitleTransition(createdId) : undefined}
+          />
+        </div>
       )}
     </Page>
   );
