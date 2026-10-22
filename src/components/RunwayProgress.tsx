@@ -31,7 +31,7 @@ export function RunwayProgress({ packed, total, departing = false }: RunwayProgr
             airborne ? "-translate-y-[85%] -rotate-12" : "-translate-y-1/2"
           } ${
             departing
-              ? "transition-[left,translate,rotate] duration-300 ease-in"
+              ? "transition-[left,translate,rotate] duration-200 ease-in"
               : "transition-[left,translate,rotate] duration-250 ease-out"
           }`}
           // Keeps the plane inside the runway at 0% and 100%.

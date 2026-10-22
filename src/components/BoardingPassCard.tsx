@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, ViewTransition, type MouseEvent, type ReactNode } from "react";
 import { formatDay } from "@/lib/dates";
+import { prefersReducedMotion } from "@/lib/motion";
 import { Card, CardLink } from "./Card";
 import { NewBadge } from "./NewBadge";
 import { RunwayProgress } from "./RunwayProgress";
@@ -27,8 +28,9 @@ type BoardingPassCardProps = {
 // the first time a card shows its count. Memory only: never saved, reset on reload.
 const shownNewCounts = new Map<string, number>();
 
-// How long the plane takes to run to the end of the runway before the trip opens.
-const TAKEOFF_MS = 350;
+// How long the plane takes to run to the end of the runway before the trip opens;
+// the title morph carries the rest of the move.
+const TAKEOFF_MS = 200;
 
 // Half-circle notches: a circle in the page color with two border sides colored,
 // rotated 45° so the colored half faces into the card. Sides swap at @md, when the
@@ -61,7 +63,7 @@ export function BoardingPassCard({
   // Clicks for a new tab or window, and reduced motion, open straight away.
   const takeOff = (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (prefersReducedMotion()) return;
     event.preventDefault();
     if (departing) return;
     setDeparting(true);

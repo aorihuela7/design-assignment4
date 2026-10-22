@@ -27,7 +27,7 @@ const UNDO_BAR_ID = "undo-bar";
 // How long Undo stays after you move away from it.
 const UNDO_MS = 3000;
 // How long the bar's plane takes to leave the runway once the last item is ticked.
-const TAKEOFF_MS = 300;
+const TAKEOFF_MS = 200;
 
 // When Undo times out while focused, focus moves to the next item on screen
 // (or the previous one, or the Add item field), so it's never lost.
