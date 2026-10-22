@@ -20,11 +20,15 @@ const strike =
   "bg-[linear-gradient(currentColor,currentColor)] bg-no-repeat bg-[length:100%_1.5px] bg-[position:0_58%] [box-decoration-break:clone] forced-colors:bg-none forced-colors:line-through";
 
 // The whole row is the checkbox's label, so the hit area is at least 44px high.
+// Hovering the row, or keyboard focus anywhere in it, tints it edge to edge; the
+// end rows round their corners to fit the card.
 export function ItemRow({ item, onToggle, onRemove, arrived = false, justPacked = false }: ItemRowProps) {
   const draw = justPacked ? "motion-safe:animate-draw" : "";
   return (
-    <li className={`flex items-center gap-2 px-2 ${arrived ? "motion-safe:animate-arrive" : ""}`}>
-      <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded px-2 py-2 hover:bg-canvas">
+    <li
+      className={`flex items-center gap-2 px-2 first:rounded-t-[3px] last:rounded-b-[3px] hover:bg-canvas has-focus-visible:bg-canvas ${arrived ? "motion-safe:animate-arrive" : ""}`}
+    >
+      <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 px-2 py-2">
         <span className="relative flex size-6 shrink-0">
           <input
             id={`item-${item.id}`}
