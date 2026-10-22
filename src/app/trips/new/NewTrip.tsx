@@ -49,8 +49,9 @@ export function NewTrip() {
     <Page title="New trip" back={{ href: "/", label: "Back to My trips" }}>
       <StorageNotice problem={problem} />
       {/* Data from a newer version must not be written over. */}
+      {/* One short field: a readable width, not the full page. */}
       {problem !== "newer" && (
-        <Card>
+        <Card className="w-full max-w-xl">
           <form noValidate onSubmit={submit} className="flex flex-col gap-4">
             <TextField
               ref={inputRef}
