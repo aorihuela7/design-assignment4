@@ -125,8 +125,6 @@ export function MyTrips() {
           </ul>
         </>
       )}
-
-      <p className="mt-auto text-sm text-muted">Saved on this device.</p>
     </Page>
   );
 }
