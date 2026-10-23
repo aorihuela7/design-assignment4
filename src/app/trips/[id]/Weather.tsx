@@ -6,6 +6,7 @@ import { TextButton } from "@/components/TextLink";
 import type { Destination, Trip } from "@/lib/trips";
 import { placeLabel, type Place } from "@/lib/weather";
 import { DestinationSearch } from "./DestinationSearch";
+import { Forecast, useForecast } from "./Forecast";
 
 type WeatherProps = {
   trip: Trip;
@@ -16,7 +17,7 @@ type WeatherProps = {
 const HEADING_ID = "weather-heading";
 
 // Where the trip is going and its weather. Without a destination, an invitation to add
-// one; with one, Change destination and Remove destination.
+// one; with one, its forecast, then Change destination and Remove destination.
 export function Weather({ trip, onSetDestination }: WeatherProps) {
   const { destination } = trip;
   const [changing, setChanging] = useState(false);
@@ -72,6 +73,7 @@ export function Weather({ trip, onSetDestination }: WeatherProps) {
         </Card>
       ) : (
         <>
+          <DestinationForecast destination={destination} onRetry={() => heading.current?.focus()} />
           {/* Rare, so quiet text actions, like Rename trip and Delete trip. */}
           <div className="flex flex-wrap gap-x-6">
             <TextButton ref={changeButton} onClick={change}>
@@ -83,5 +85,18 @@ export function Weather({ trip, onSetDestination }: WeatherProps) {
         </>
       )}
     </section>
+  );
+}
+
+function DestinationForecast({ destination, onRetry }: { destination: Destination; onRetry: () => void }) {
+  const forecast = useForecast(destination);
+  return (
+    <Forecast
+      state={forecast}
+      onRetry={() => {
+        onRetry();
+        forecast.retry();
+      }}
+    />
   );
 }

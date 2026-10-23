@@ -110,12 +110,15 @@ const DAILY = [
 
 const forecasts = new Map<string, { expires: number; days: Day[] }>();
 
-function forecastKey({ latitude, longitude, timezone }: Destination) {
+// Where a forecast is for: the coordinates, and the time zone its days are dated in.
+export type ForecastPlace = Pick<Destination, "latitude" | "longitude" | "timezone">;
+
+export function forecastKey({ latitude, longitude, timezone }: ForecastPlace) {
   return `${latitude},${longitude},${timezone}`;
 }
 
 // A forecast already loaded in this tab and still fresh, so the board shows at once.
-export function cachedForecast(destination: Destination): Day[] | null {
+export function cachedForecast(destination: ForecastPlace): Day[] | null {
   const hit = forecasts.get(forecastKey(destination));
   return hit && hit.expires > Date.now() ? hit.days : null;
 }
@@ -141,7 +144,7 @@ function toDays(data: unknown): Day[] {
 }
 
 // Today and the next 6 days, dated in the destination's time zone.
-export async function fetchForecast(destination: Destination): Promise<Day[]> {
+export async function fetchForecast(destination: ForecastPlace): Promise<Day[]> {
   const cached = cachedForecast(destination);
   if (cached) return cached;
   const url = new URL("https://api.open-meteo.com/v1/forecast");
