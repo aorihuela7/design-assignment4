@@ -1,8 +1,8 @@
 # Pack Again
 
-Pack Again is a packing list for trips you take again and again: a weekend at your parents', a conference, a beach weekend. If you rebuild the same list from memory each time and forget the same things, Pack Again keeps the list for you. Open it, tick items off as you pack, add anything you forgot for next time, and find the list ready when the next trip comes around. There's no account and nothing to set up: three starter trips are there on your first visit.
+Pack Again is a packing list for trips you take again and again: a weekend at your parents', a conference, a beach weekend. If you rebuild the same list from memory each time and forget the same things, Pack Again keeps the list for you. Open it, tick items off as you pack, add anything you forgot for next time, and find the list ready when the next trip comes around. Add where you're going to see the next 7 days' weather beside the list, with what to pack for it. Sign up and three starter trips are waiting; your trips are there on any device you sign in on.
 
-Live: https://design-assigment3.vercel.app
+Live: https://design-assignment4.vercel.app
 
 ## Flows
 
@@ -12,18 +12,17 @@ First visit, main task, coming back. Notes: [flows.md](flows.md).
 flowchart TD
   subgraph first["First visit"]
     direction TB
-    A1(["Open Pack Again"]) --> A2["Loading your trips…"]
-    A2 --> A3{"Trips saved in<br/>this browser?"}
-    A3 -- "None yet" --> A4["3 starter trips appear<br/>nothing asked first"]
-    A3 -- "Yes" --> A7
-    A3 -- "Can't read them" --> A5["Copy kept, start fresh<br/>No trips yet · Add the starter trips back"]
-    A3 -- "Browser not saving" --> A6["Trips work, with a banner:<br/>this browser isn't saving"]
-    A4 --> A7["My trips<br/>ticket cards, newest first"]
+    A1(["Open Pack Again"]) --> A2["Packing lists for trips you repeat<br/>Sign up · Sign in"]
+    A2 -- "Sign up or sign in" --> A3{"First sign-in?"}
+    A3 -- "Yes" --> A4["3 starter trips, made once<br/>nothing asked first"]
+    A3 -- "No" --> A6
+    A4 --> A6["My trips<br/>ticket cards, newest first"]
+    A6 -. "Can't load" .-> A5["We couldn't load your trips<br/>Try again"]
   end
 
   subgraph main["Main task"]
     direction TB
-    B1["My trips"] -- "Open a card" --> B3["Packing list<br/>sticky bar: count and plane"]
+    B1["My trips"] -- "Open a card" --> B3["Packing list<br/>list, with the weather beside it"]
     B1 -- "New trip" --> B2["Trip name, with a live ticket<br/>empty · duplicate · too long"]
     B2 -- "Create trip" --> B3
     B3 -- "Add item" --> B4["Added X to Section<br/>or an error under the field"]
@@ -32,22 +31,25 @@ flowchart TD
     B5 --> B3
     B3 -- "Tick every item" --> B6["All packed. Have a good trip."]
     B6 -- "Forgot something?" --> B7["Saved as packed and New,<br/>for next time"]
-    B3 -- "Rename trip" --> B10["Trip name, in place<br/>same checks as New trip"]
+    B3 -- "Destination" --> W1["Places found<br/>or No places match"]
+    W1 -- "Choose a place" --> W2["Next 7 days and<br/>Pack for this weather"]
+    W2 -- "Add a tip" --> B4
+    B3 -- "Trip options" --> B10["Rename trip, in place<br/>same checks as New trip"]
     B10 --> B3
-    B3 -- "Delete trip" --> B11{"Delete X and<br/>its items?"}
+    B3 -- "Trip options" --> B11{"Delete X and<br/>its items?"}
     B11 -- "Cancel" --> B3
     B11 -- "Delete trip" --> B12["My trips<br/>Deleted X"]
-    B8(["Old or wrong link"]) --> B9["Trip not found<br/>Back to My trips"]
+    B8(["Old link, or someone else's"]) --> B9["Trip not found<br/>Back to My trips"]
   end
 
   subgraph back["Coming back"]
     direction TB
-    C1(["Come back before the next trip"]) --> C2["My trips<br/>Last packed · N added for next trip"]
+    C1(["Sign in, on any device"]) --> C2["My trips<br/>Last packed · N added for next trip"]
     C2 -- "After 2+ days away" --> C3["Welcome back.<br/>N trips ready to pack again."]
     C2 -- "Forgot something? Add it" --> C7["List opens with<br/>Add item focused"]
     C2 -- "Open the list" --> C4{"Packed over 2 days ago<br/>and still ticked?"}
     C4 -- "Yes" --> C5["Packing for a new trip?<br/>Clear all ticks · Keep them"]
-    C4 -- "No" --> C8["The list as you left it"]
+    C4 -- "No" --> C8["The list as you left it,<br/>with today's forecast"]
     C5 -- "Clear all ticks" --> C6["Ready to pack again<br/>New items listed first"]
     C5 -- "Keep them" --> C8
   end
@@ -59,14 +61,36 @@ flowchart TD
 
 ## Run it locally
 
-You need Node.js 20 or newer.
+You need Node.js 20.9 or newer, a Clerk application and a Supabase project, both on free plans.
 
-```bash
-npm install
-npm run dev
-```
+1. **Database:** apply the migrations in [`supabase/migrations/`](supabase/migrations/) to the Supabase project, in filename order (see [Database](#database)).
+2. **Sign-in:** in Clerk, Integrations › Supabase › Activate, and copy the domain it shows. In Supabase, Authentication › Sign In / Providers › Third-party auth › Clerk, and paste it.
+3. **Keys:** create `.env.local` with these variables, and never commit it:
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`: Clerk's development keys.
+   - `NEXT_PUBLIC_SUPABASE_URL`: the project's URL, origin only (`https://<project-ref>.supabase.co`).
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: the publishable key, never the secret key.
+   - For the end-to-end test only, `E2E_USER_A_EMAIL` and `E2E_USER_B_EMAIL`: the emails of two test users in Clerk's development instance.
+4. **Start it:**
 
-Then open http://localhost:3000. `npm run check:contrast` checks the color contrast of every pair the app uses.
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+   Then open http://localhost:3000.
+
+Two checks:
+
+- `npm run check:contrast` checks the contrast of every color pair the app uses.
+- `npm run test:e2e` signs in the two test users and checks that neither sees the other's trips. It starts its own dev server on port 3100, or the port in `E2E_PORT`. Next.js allows one dev server per project, so if yours is running, point the test at it instead: `E2E_BASE_URL=http://localhost:3000 npm run test:e2e`.
+
+## What it remembers
+
+Your trips are saved in Supabase under your account: their items and sections, which items are ticked or marked New, the destination (its name, country, coordinates and time zone), when each trip was last packed, when you cleared the ticks, and whether you answered "Packing for a new trip?". Your profile records only when the starter trips were added, so each account gets them once.
+
+Every row carries your Clerk user id, and row-level security lets only you read or change it. A signed-out visitor sees no one's data. The browser reaches Supabase with your Clerk session token and the publishable key; the app never uses Supabase's secret key.
+
+The forecast is never saved. Your browser asks Open-Meteo for it and keeps it in the tab for 30 minutes, so Open-Meteo sees your IP address along with the destination. Trips saved in a browser before accounts existed are ignored. There are no analytics, and the fonts are served by the app itself.
 
 ## Database
 
@@ -87,7 +111,20 @@ select tablename, count(*) as policies from pg_policies where schemaname = 'publ
 
 It should list 4 policies on `trips`, 4 on `items` and 2 on `profiles`. None should be named "Step 7: …".
 
-## First-run check
+## Second polish pass
+
+On the `polish` branch, in batches, with [before and after screenshots](docs/polish-2/) of every screen at 390px and 1440px.
+
+- **The trip page in two zones.**
+  - **The list:** the runway and count, with Clear all ticks beside them once something is ticked; the Add item form, on one row on wider screens; then the sections.
+  - **The weather:** everything about the destination, in one place. On wider screens it's a panel beside the list that stays in view as you scroll. On a phone it's one block at the top that opens and closes, showing today's high, low and first tip while closed.
+  - **Trip options:** Rename trip and Delete trip, in a menu beside the trip's name.
+
+## History: assignment 3
+
+Before accounts, Pack Again kept everything in the browser. These sections are from then.
+
+### First-run check
 
 An AI agent used the live app twice as a first-time user, judging only from the screen: first visit, adding items (including an empty submit and a duplicate), ticking, removing, finishing a list, adding something forgotten, coming back in a new tab, at 1440px and 390px, and once with the keyboard only. It had built the app itself, so it wasn't a truly fresh user; treat this as a first pass before testing with people.
 
@@ -150,7 +187,7 @@ An audit against AGENTS.md and the assignment, then the features left out of the
 - Deleting a trip asks first instead of offering Undo: it removes a whole list, and the question is in place, not a modal.
 - Save in Rename uses the secondary button and the Delete trip confirmation a solid ink one, so Add item stays the only accent on a list page.
 
-## Polish pass
+### Polish pass
 
 Before the database step, an audit of every screen and state at 390px and 1440px ([audit and plan](docs/polish/audit.md), [before](docs/polish/before/) and [after](docs/polish/after/) screenshots) led to three batches:
 
@@ -159,9 +196,3 @@ Before the database step, an audit of every screen and state at 390px and 1440px
 - **A live ticket on New trip,** showing the name and code as you type.
 
 Ideas that need new saved fields wait in [docs/plan.md](docs/plan.md). The saved data and its key didn't change.
-
-## What it remembers
-
-Everything stays in your browser's local storage under `pack-again:v1`: your trips, their items and sections, which items are ticked or marked New, when each trip was last packed, when you cleared the ticks, and whether you answered "Packing for a new trip?". If saved data can't be read, a copy is kept under `pack-again:backup` before starting fresh.
-
-Nothing leaves your device: no account, no server, no analytics, and the fonts are bundled with the app. Tabs in the same browser stay in sync, but trips don't sync to other browsers or devices, and clearing your browser's site data deletes them.
