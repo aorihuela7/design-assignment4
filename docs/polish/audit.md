@@ -60,3 +60,17 @@ All of these use CSS or the Web Animations API, run 150 to 300ms, never block in
 ### (b) Needs new saved fields (for the database step only)
 
 These go into `docs/plan.md` under "Later (needs new data)": quantities ("Socks × 5"); notes per item; custom sections and section order; manual item order across sections; trip dates with "Departs in 3 days" and reminders; archive or pin a trip; packing history ("forgotten 3 times"); a base list per trip vs. per-trip extras; which bag an item goes in; who packs what; a remembered section per trip; sync across devices and sharing (the database itself).
+
+## Outcome
+
+Built: V1–V14, M1–M9 and F6 (chosen 22 Oct 2026). Where the build differs from the plan above:
+
+- **V1:** the bar's second line is always there (44px), blank when there's nothing to say, so nothing moves when a message appears.
+- **V14:** the full-width rule shows only while the bar is stuck; at the top of the page it stays at the content width.
+- **M6:** a card's badge stamps in the first time this tab shows its count. What was seen is kept in memory, so a reload stamps it once more; remembering across visits would need saved data.
+- **M7:** the title morph needs the trip page to render in the same step as the navigation, which it does once the route is prefetched (always, in the production build). Otherwise the page just fades.
+- **M9:** a clip-path reveal hid the panel from clicks for 200ms, so it became a fade with a 4px drop, usable from the first frame.
+- **Kept as is:** the 1.8s tint on a just-added or restored row. It fades a highlight and doesn't move anything, so it stays longer than the 150 to 300ms used for motion.
+- **F6:** the preview's title also morphs into the new trip's page title on Create trip.
+
+Unchanged: the storage key (`pack-again:v1`) and the shape of saved data.
