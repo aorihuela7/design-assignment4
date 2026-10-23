@@ -24,9 +24,10 @@
 | 5 Supabase + Clerk | App reads and writes Supabase (`7038317`–`24fc194`). Migrations applied to `fmitwpdmqajkvxczutwd` and RLS checked with two simulated users; waiting for your two-account check |
 | 6 Where the API call happens | Built in the browser (`3b2cd35`–`9cd9f4e`), plus a summary at the top (`ce3f9c3`, `08608d7`); Ask answers written; waiting for your check of each state |
 | 7 Playwright test, failing first | Done: seen passing, failing with RLS broken, then passing again (`36bbd39`, `b24cbea`) |
-| 8 Review and deploy | Not started |
+| 8 Review and deploy | Done: `/security-review` findings handled, merged into `main` (PR #1) and live at https://design-assignment4.vercel.app |
+| Polish pass 2 | In progress on `polish` (below): batch 1 done |
 
-**Next action:** you check step 5 with two accounts (neither sees the other's trips; different `user_id`s in the dashboard), then each weather state on a list page (`?weather=down` and `?weather=none` in development). The Ask Your Agent answers for steps 5 to 7 are in `docs/learning.md`, with the request diagram in `docs/request-flow.md`. Next step: 8, review and deploy.
+**Next action:** polish pass 2, batch 2 (the destination code and the takeoff bug).
 
 ## Step 0: Context, branch and free tiers
 
@@ -151,6 +152,20 @@
 - **Ask Your Agent:** "Quiz me on how my app works, one question at a time, and tell me what I got wrong. Start with the questions in Be Ready to Explain."
 - **Done when:** the live URL shows nothing signed out and works signed in, a classmate has used it, every requirement below is ticked, and the Vercel and GitHub URLs are ready to submit.
 
+## Polish pass 2 (branch `polish`)
+
+Production on `main` stays as it is; the work happens on `polish`, pushed for a Vercel preview, and is never merged by me. Screenshots of every screen before and after are in `docs/polish-2/`.
+
+| Batch | Status |
+|---|---|
+| 1 The trip page in two zones: the list, the weather, Trip options | Done |
+| 2 The destination code, and the takeoff bug | Next |
+| 3 A more delightful My trips | Three questions first: the greeting, the forecast cache, two ideas of mine |
+| 4 Features | You choose which; any database change is shown to you before it runs |
+| 5 Night flight dark theme | Optional, asked after batch 4 |
+
+After each batch: build, lint, the contrast check and the end-to-end test, then the after screenshots, a push and a summary with the preview link.
+
 ## Requirements checklist
 
 - [ ] Accounts: sign up, sign in and sign out with Clerk; nothing visible signed out (step 4)
@@ -183,3 +198,7 @@
 - 23 Oct, step 7: two test users with `+clerk_test` emails and no passwords, created through Clerk's Backend API at your request; the test signs them in with `clerk.signIn({ emailAddress })`. Their emails are in `E2E_USER_A_EMAIL` and `E2E_USER_B_EMAIL`.
 - 23 Oct, step 7: RLS broken with a temporary permissive select policy on trips (`using (true)`), then restored. The restore was run by hand in the SQL Editor, because the MCP's confirmation for a drop couldn't reach you. Both migration files are committed.
 - 23 Oct, step 8: `/security-review` found no vulnerabilities. Fixed: the restore migration is idempotent (`drop policy if exists`) and explained in the README, and the Supabase MCP server is read-only. Not fixed, with reasons in `docs/learning.md`: Playwright failure traces, and Clerk's deprecated `createRouteMatcher`.
+- 23 Oct, polish pass 2: the screenshots are taken with the project's own Playwright, signed in as a test user, on a dev server started for them.
+- 23 Oct, polish pass 2, batch 1: Clear all ticks is hidden until something is ticked.
+- 23 Oct, polish pass 2, batch 1: only the trip page gets the wider page (two columns); the other pages keep their 900 px column.
+- 23 Oct, polish pass 2, batch 1: on a phone, the weather block starts closed every time.
