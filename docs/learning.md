@@ -249,3 +249,78 @@ The diagram is in [request-flow.md](request-flow.md). It follows one click: choo
 - **Our Next.js server** served the page earlier and checked the session in `proxy.ts`. It plays no part in the click.
 - **The browser** gets a session token from Clerk and saves the destination in Supabase with it. Supabase checks the token, then row-level security checks that the trip is the person's.
 - **The forecast** comes straight from Open-Meteo to the browser, with no key, token or cookie. That's the step 6 decision: no key to hide, each person's own rate limit instead of Vercel's shared IPs, and no function calls on Hobby. The cost is that Open-Meteo sees each person's IP address.
+
+## Step 7: One end-to-end test, seen failing before it passed
+
+> "Explain why the test failed when I broke row-level security, in one sentence I could say in class."
+
+The test failed because my temporary policy let Supabase send every trip to anyone signed in, so person A's My trips showed person B's list, which proves that row-level security, not the app's code, is what keeps each person's lists private.
+
+### The test
+
+[`e2e/isolation.spec.ts`](../e2e/isolation.spec.ts), run with `npm run test:e2e`:
+
+1. Two Clerk test users, A and B, sign in at the same time, each in a browser context of their own. Clerk's `clerk.signIn` signs them in with a one-time sign-in token, and `clerkSetup()` gets a Testing Token past Clerk's bot protection.
+2. Each saves a list with a unique name and an item.
+3. Each sees their own list on My trips, and not the other's.
+4. Opening the other's list by its address shows "Trip not found".
+5. Each deletes their own list at the end, even when a check fails.
+
+It needs `E2E_USER_A_EMAIL` and `E2E_USER_B_EMAIL` in `.env.local`, the emails of two users in the Clerk development instance. It starts its own `next dev` on port 3100, so stop yours first, or point it at yours with `E2E_BASE_URL`.
+
+The first run also found a real problem. `NEXT_PUBLIC_SUPABASE_URL` held the REST endpoint (`…/rest/v1`), so every query went to `/rest/v1/rest/v1/trips` and no one's trips could load. The app now uses only the URL's origin.
+
+### Broken on purpose: it fails
+
+Migration [`20261023074853_step7_break_trips_select.sql`](../supabase/migrations/20261023074853_step7_break_trips_select.sql) added a second select policy on `trips`, `using (true)`. Policies of the same kind are combined with OR, so every signed-in person could read every trip. The test failed at the check that matters (23 Oct; the dev server's log lines are left out and paths shortened):
+
+```
+Running 2 tests using 1 worker
+
+  ✓  1 [setup] › e2e/global.setup.ts:8:6 › Clerk testing token (263ms)
+  ✘  2 [isolation] › e2e/isolation.spec.ts:43:5 › two people never see each other's lists (30.4s)
+
+  1) [isolation] › e2e/isolation.spec.ts:43:5 › two people never see each other's lists › A sees their own list on My trips, and not the other's
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('link', { name: 'E2E B mvko55kj', exact: true })
+    Expected: 0
+    Received: 1
+    Timeout:  15000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('link', { name: 'E2E B mvko55kj', exact: true }) with timeout 15000ms
+      - waiting for getByRole('link', { name: 'E2E B mvko55kj', exact: true })
+        34 × locator resolved to 1 element
+           - unexpected value "1"
+
+      61 |         await person.page.goto("/");
+      62 |         await expect(person.page.getByRole("link", { name: person.list, exact: true })).toBeVisible();
+    > 63 |         await expect(person.page.getByRole("link", { name: other.list, exact: true })).toHaveCount(0);
+         |                                                                                        ^
+      64 |       });
+      65 |     }
+      66 |
+        at e2e/isolation.spec.ts:63:88
+        at e2e/isolation.spec.ts:59:7
+
+  1 failed
+    [isolation] › e2e/isolation.spec.ts:43:5 › two people never see each other's lists
+  1 passed (33.9s)
+```
+
+### Fixed: it passes
+
+[`20261023212046_step7_restore_trips_select.sql`](../supabase/migrations/20261023212046_step7_restore_trips_select.sql) drops that policy. It was run by hand in Supabase › SQL Editor: the Supabase MCP server asks for confirmation before a drop, and that question couldn't reach us from the agent's session, so it declined twice. Because of that it isn't in Supabase's migration history.
+
+The policies are back to the originals (4 on trips, 4 on items, 2 on profiles), the security advisor reports nothing, and the test passes again:
+
+```
+Running 2 tests using 1 worker
+
+  ✓  1 [setup] › e2e/global.setup.ts:8:6 › Clerk testing token (349ms)
+  ✓  2 [isolation] › e2e/isolation.spec.ts:43:5 › two people never see each other's lists (18.8s)
+
+  2 passed (21.2s)
+```
