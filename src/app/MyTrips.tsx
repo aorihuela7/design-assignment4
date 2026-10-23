@@ -63,6 +63,7 @@ export function MyTrips() {
     );
   }
 
+  // Also covers making the starter trips, on a first sign-in.
   if (storage.status === "loading") {
     return (
       <Page title="My trips">

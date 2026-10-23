@@ -117,9 +117,21 @@ function connect(userId: string | null, getToken: () => Promise<string | null>) 
   if (session) void load(session);
 }
 
+// No trips: a first sign-in, or every trip deleted. Only the profile tells them apart.
+async function hasProfile(db: SupabaseClient) {
+  const { data } = await db.from("profiles").select("user_id").maybeSingle().throwOnError();
+  return data !== null;
+}
+
 async function load(owner: Session) {
   try {
-    const trips = await fetchTrips(owner.db);
+    let trips = await fetchTrips(owner.db);
+    // First sign-in: the starter trips, made with the profile in one transaction. It's
+    // safe to call twice (two tabs at once): the second call does nothing.
+    if (trips.length === 0 && !(await hasProfile(owner.db))) {
+      await owner.db.rpc("add_starter_trips", { starters: starterTrips() }).throwOnError();
+      trips = await fetchTrips(owner.db);
+    }
     if (session !== owner) return;
     saved = trips;
     status = "ready";

@@ -1,6 +1,7 @@
 import type { Section, Trip } from "./trips";
 
-// Made again by "Add the starter trips back" on My trips, after every trip is deleted.
+// Made once per person, on their first sign-in (add_starter_trips), and again only by
+// "Add the starter trips back" on My trips, after every trip is deleted.
 const STARTERS: { name: string; items: [Section, string][] }[] = [
   {
     name: "Weekend at parents'",
