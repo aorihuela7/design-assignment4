@@ -25,5 +25,8 @@ export const clerkAppearance: NextClerkProviderProps["appearance"] = {
   },
   elements: {
     formButtonPrimary: "uppercase tracking-wider",
+    // The account button on the band: a 32px avatar in a 44px target.
+    userButtonTrigger: "rounded-full p-1.5",
+    avatarBox: "size-8",
   },
 };

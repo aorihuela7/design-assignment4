@@ -1,3 +1,4 @@
+import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { ViewTransition, type ReactNode } from "react";
 
@@ -6,7 +7,7 @@ export const PAGE_TITLE_ID = "page-title";
 type HeaderProps = {
   // Current page name, shown large on the board and used as the page's h1.
   title: string;
-  // On My trips the home link is the current page.
+  // At home (My trips, or the landing page) the home link is the current page.
   isHome?: boolean;
   // While the page's own name is loading: a blank bar on screen, the title for screen readers.
   titleLoading?: boolean;
@@ -14,25 +15,47 @@ type HeaderProps = {
   code?: string;
   // Shared with the trip's card title, which morphs into this one on opening.
   titleTransition?: string;
+  // Pages for signed-out visitors offer Sign in and Sign up; the rest, the account menu.
+  signedOut?: boolean;
 };
 
-export function Header({ title, isHome = false, titleLoading = false, code, titleTransition }: HeaderProps) {
+// Amber caps on the band; the accent stays for each page's primary action.
+const bandLink =
+  "-mx-1 inline-flex min-h-11 shrink-0 items-center rounded px-1 underline-offset-4 active:bg-amber active:text-board";
+
+export function Header({
+  title,
+  isHome = false,
+  titleLoading = false,
+  code,
+  titleTransition,
+  signedOut = false,
+}: HeaderProps) {
   return (
     <header data-surface="board" className="bg-board text-amber">
       <div className="mx-auto w-full max-w-225 px-4 pt-3 pb-5 sm:px-6">
-        <div className="flex items-center font-mono text-xs uppercase tracking-widest">
-          <Link
-            href="/"
-            aria-current={isHome ? "page" : undefined}
-            className="-mx-1 inline-flex min-h-11 shrink-0 items-center rounded px-1 underline-offset-4 hover:underline active:bg-amber active:text-board"
-          >
+        <div className="flex items-center gap-4 font-mono text-xs uppercase tracking-widest">
+          <Link href="/" aria-current={isHome ? "page" : undefined} className={`${bandLink} hover:underline`}>
             Pack Again
           </Link>
-          {code && (
-            <span aria-hidden="true" className="ml-auto">
-              {code}
-            </span>
-          )}
+          <div className="ml-auto flex items-center gap-4">
+            {code && <span aria-hidden="true">{code}</span>}
+            {signedOut ? (
+              <>
+                <Link href="/sign-in" className={`${bandLink} underline hover:decoration-2`}>
+                  Sign in
+                </Link>
+                <Link href="/sign-up" className={`${bandLink} underline hover:decoration-2`}>
+                  Sign up
+                </Link>
+              </>
+            ) : (
+              // Sized before Clerk loads the button, so the band doesn't shift. Sign out is in its menu.
+              <div className="flex size-11 items-center justify-center">
+                <UserButton />
+              </div>
+            )}
+          </div>
         </div>
         {/* tabIndex -1: pages can move focus here on arrival; no ring, since it isn't a control.
             As wide as its text, so the morph from a card scales it evenly. */}

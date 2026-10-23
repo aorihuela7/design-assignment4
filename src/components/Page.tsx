@@ -12,14 +12,23 @@ type PageProps = {
   code?: string;
   // A trip's page: its title morphs from the card that opened it.
   titleTransition?: string;
+  // The landing, sign-in and sign-up pages: Sign in and Sign up instead of the account menu.
+  signedOut?: boolean;
   children: ReactNode;
 };
 
-export function Page({ title, back, titleLoading = false, code, titleTransition, children }: PageProps) {
+export function Page({ title, back, titleLoading = false, code, titleTransition, signedOut, children }: PageProps) {
   return (
     <>
-      {/* Only My trips has no back link: it's home. */}
-      <Header title={title} isHome={!back} titleLoading={titleLoading} code={code} titleTransition={titleTransition} />
+      {/* Only home (My trips, or the landing page) has no back link. */}
+      <Header
+        title={title}
+        isHome={!back}
+        titleLoading={titleLoading}
+        code={code}
+        titleTransition={titleTransition}
+        signedOut={signedOut}
+      />
       {/* Moving to another page fades the content out and the new content in. */}
       <ViewTransition enter="page-in" exit="page-out" default="none">
         <main className="mx-auto flex w-full max-w-225 flex-1 flex-col gap-6 px-4 py-6 sm:px-6">

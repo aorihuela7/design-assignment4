@@ -11,7 +11,7 @@ const loading = <p role="status" className="text-muted">Loading sign-up…</p>;
 // A catch-all route, so Clerk's later steps (like verifying the email) stay on this page.
 export default function SignUpPage() {
   return (
-    <Page title="Sign up" back={{ href: "/", label: "Back to Pack Again" }}>
+    <Page title="Sign up" back={{ href: "/", label: "Back to Pack Again" }} signedOut>
       <Suspense fallback={loading}>
         <SignUp fallback={loading} />
       </Suspense>
