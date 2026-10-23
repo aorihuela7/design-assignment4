@@ -20,13 +20,13 @@
 | 1 Tool and API | In progress |
 | 2 Data model | Not started |
 | 3 Protect keys | Deny rule committed early; rest not started |
-| 4 Clerk sign-in | Not started |
+| 4 Clerk sign-in | Code done (`502ee83`–`b96478e`); waiting for keys to check it running |
 | 5 Supabase + Clerk | Not started |
 | 6 Where the API call happens | Not started |
 | 7 Playwright test, failing first | Not started |
 | 8 Review and deploy | Not started |
 
-**Next action:** you confirm that `/context` lists AGENTS.md; then step 0 is done and I wait for "continue".
+**Next action:** you run `npx -y clerk@latest link` and `npx -y clerk@latest env pull` (doctor found the project unlinked, with no `.env.local`); then I check sign-in and the signed-out redirects in a browser.
 
 ## Step 0: Context, branch and free tiers
 
@@ -169,3 +169,5 @@
 
 - 22 Oct, step 0: roadmap approved.
 - 22 Oct, step 0: the brief PDF stays out of the repo.
+- 22 Oct, step 4: signed out, `/` is a landing page with Sign in and Sign up; every other page redirects to sign-in.
+- 22 Oct, step 4: sign-in and sign-up are pages in the app (`/sign-in`, `/sign-up`) with Clerk's components in the Departures colors, not Clerk's hosted pages.
