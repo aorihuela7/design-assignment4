@@ -34,8 +34,9 @@ async function saveList(page: Page, list: string, item: string) {
 
 async function deleteList(page: Page, url: string) {
   await page.goto(url);
+  await page.getByRole("button", { name: "Trip options" }).click();
   await page.getByRole("button", { name: "Delete trip" }).click();
-  // The question replaces the button; this one confirms.
+  // The question replaces the menu; this one confirms.
   await page.getByRole("button", { name: "Delete trip" }).click();
   await page.waitForURL((address) => address.pathname === "/");
 }
