@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# clerk (its CLI and keyless mode can write keys here)
+.clerk/
+
 # vercel
 .vercel
 
