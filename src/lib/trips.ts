@@ -1,4 +1,33 @@
-import { SECTIONS, type Item, type Section, type StoredData, type Trip } from "./storage";
+// What a trip is, and the rules for packing it. Where trips are kept is storage.ts.
+
+export const SECTIONS = [
+  { value: "clothes", label: "Clothes" },
+  { value: "toiletries", label: "Toiletries" },
+  { value: "tech", label: "Tech" },
+  { value: "documents", label: "Documents" },
+  { value: "other", label: "Other" },
+] as const;
+
+export type Section = (typeof SECTIONS)[number]["value"];
+
+export type Item = {
+  id: string;
+  name: string;
+  section: Section;
+  packed: boolean;
+  isNew: boolean; // added after a full pack, cleared on the next full pack
+  createdAt: string; // the order items were added in; Undo puts an item back with it
+};
+
+export type Trip = {
+  id: string;
+  name: string;
+  items: Item[]; // in the order they were added
+  lastPackedAt: string | null; // set when every item is ticked
+  promptDismissedAt: string | null; // "Packing for a new trip?" answered
+  ticksClearedAt: string | null; // ticks cleared for a new trip
+  updatedAt: string; // any change to the trip or its items; sorts My trips
+};
 
 export type SectionGroup = { section: Section; label: string; items: Item[] };
 
@@ -26,32 +55,12 @@ function isNewTripPack(trip: Trip) {
   return !trip.lastPackedAt || Date.parse(trip.ticksClearedAt) > Date.parse(trip.lastPackedAt);
 }
 
-// Replaces one trip's items and stamps updatedAt, ready to save. On the change that
-// makes the list fully packed (not on page loads), it also records lastPackedAt and,
-// for a new trip, clears the New marks.
-export function withItems(
-  data: StoredData,
-  tripId: string,
-  items: Item[],
-  changes: Partial<Pick<Trip, "promptDismissedAt" | "ticksClearedAt">> = {},
-): StoredData {
-  const now = new Date().toISOString();
-  return {
-    ...data,
-    trips: data.trips.map((t) => {
-      if (t.id !== tripId) return t;
-      const trip = { ...t, ...changes };
-      if (!isAllPacked(trip.items) && isAllPacked(items)) {
-        return {
-          ...trip,
-          items: isNewTripPack(trip) ? items.map((item) => ({ ...item, isNew: false })) : items,
-          lastPackedAt: now,
-          updatedAt: now,
-        };
-      }
-      return { ...trip, items, updatedAt: now };
-    }),
-  };
+// Whether a change to a trip's items is a full pack: the change that makes the list
+// fully packed (never a page load). A full pack records lastPackedAt and, for a new
+// trip, clears the New marks. Null when the change isn't one.
+export function fullPack(trip: Trip, items: Item[]): { clearsNew: boolean } | null {
+  if (isAllPacked(trip.items) || !isAllPacked(items)) return null;
+  return { clearsNew: isNewTripPack(trip) };
 }
 
 export const MAX_ITEM_NAME = 60;

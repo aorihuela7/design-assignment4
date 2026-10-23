@@ -4,25 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import { BoardingPassCard, BoardingPassSkeleton } from "@/components/BoardingPassCard";
 import { Button, ButtonLink } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { ErrorMessage } from "@/components/ErrorMessage";
+import { LoadFailed } from "@/components/LoadFailed";
 import { Notice } from "@/components/Notice";
 import { Page } from "@/components/Page";
-import { StorageNotice } from "@/components/StorageNotice";
 import { SectionHeading } from "@/components/SectionHeading";
 import { uniqueCodes } from "@/lib/codes";
 import { clearFlash, peekFlash } from "@/lib/flash";
-import { createStarterTrips, isUntouchedStarters } from "@/lib/starters";
-import { createIfMissing, updateData, useStorage, type Trip } from "@/lib/storage";
-import { tripTitleTransition, welcomeBackCount } from "@/lib/trips";
+import { isUntouchedStarters } from "@/lib/starters";
+import { addStarterTripsBack, useStorage } from "@/lib/storage";
+import { tripTitleTransition, welcomeBackCount, type Trip } from "@/lib/trips";
 import { useNow } from "@/lib/useNow";
 
 function newestFirst(a: Trip, b: Trip) {
   return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
-}
-
-function addStartersBack() {
-  updateData((data) => ({ ...data, trips: [...data.trips, ...createStarterTrips()] }));
-  // The button is gone now; move focus to the first list instead of losing it.
-  requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-card-link]")?.focus());
 }
 
 // Same on the server and the first client render, so hydration matches. Shaped
@@ -52,7 +47,7 @@ export function MyTrips() {
   // once, so it's read out and keyboard focus isn't lost.
   const [flash] = useState(peekFlash);
   const flashRef = useRef<HTMLDivElement>(null);
-  const ready = storage.status === "ready" && storage.data !== null;
+  const ready = storage.status === "ready";
   useEffect(() => {
     clearFlash();
   }, []);
@@ -60,22 +55,15 @@ export function MyTrips() {
     if (ready) flashRef.current?.focus();
   }, [ready]);
 
-  // First visit: the lists are there right away, nothing asked first.
-  useEffect(() => {
-    createIfMissing(createStarterTrips);
-  }, []);
-
-  // Saved by a newer version of the app: show nothing that could write over it.
-  if (storage.status === "ready" && storage.problem === "newer") {
+  if (storage.status === "failed") {
     return (
       <Page title="My trips">
-        <StorageNotice problem="newer" />
+        <LoadFailed />
       </Page>
     );
   }
 
-  // Also covers the moment before the starter lists are created.
-  if (storage.status === "loading" || storage.data === null) {
+  if (storage.status === "loading") {
     return (
       <Page title="My trips">
         <Loading />
@@ -83,8 +71,7 @@ export function MyTrips() {
     );
   }
 
-  const { data } = storage;
-  const { trips } = data;
+  const { trips } = storage;
   // Codes come from storage order, so they stay put when the sort changes.
   const codes = uniqueCodes(trips);
   // One line under the title at most: welcome back wins over the starter line.
@@ -103,22 +90,9 @@ export function MyTrips() {
           <Notice>{flash}</Notice>
         </div>
       )}
-      <StorageNotice problem={storage.problem} />
 
       {trips.length === 0 ? (
-        // Only after the person deleted every list; starters never come back on their own.
-        <EmptyState plane>
-          <div className="flex flex-col gap-1">
-            <SectionHeading>No trips yet</SectionHeading>
-            <p className="text-muted">Make a list once and it’s ready for every trip after.</p>
-          </div>
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-            <ButtonLink variant="primary" href="/trips/new">
-              New trip
-            </ButtonLink>
-            <Button onClick={addStartersBack}>Add the starter trips back</Button>
-          </div>
-        </EmptyState>
+        <NoTrips />
       ) : (
         <>
           {/* The primary action stays at the top, beside the intro on wide screens. */}
@@ -151,7 +125,39 @@ export function MyTrips() {
         </>
       )}
 
-      {storage.problem !== "blocked" && <p className="mt-auto text-sm text-muted">Saved on this device.</p>}
+      <p className="mt-auto text-sm text-muted">Saved on this device.</p>
     </Page>
+  );
+}
+
+// Only after the person deleted every list; starters never come back on their own.
+function NoTrips() {
+  const [failed, setFailed] = useState(false);
+  const adding = useRef(false);
+
+  async function addBack() {
+    if (adding.current) return;
+    adding.current = true;
+    const ok = await addStarterTripsBack();
+    adding.current = false;
+    setFailed(!ok);
+    // The button is gone now; move focus to the first list instead of losing it.
+    if (ok) requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-card-link]")?.focus());
+  }
+
+  return (
+    <EmptyState plane>
+      <div className="flex flex-col gap-1">
+        <SectionHeading>No trips yet</SectionHeading>
+        <p className="text-muted">Make a list once and it’s ready for every trip after.</p>
+      </div>
+      <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+        <ButtonLink variant="primary" href="/trips/new">
+          New trip
+        </ButtonLink>
+        <Button onClick={addBack}>Add the starter trips back</Button>
+      </div>
+      {failed && <ErrorMessage role="alert">Not added. Check your connection and try again</ErrorMessage>}
+    </EmptyState>
   );
 }

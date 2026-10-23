@@ -2,7 +2,7 @@ import { useEffect, useRef, type FocusEvent } from "react";
 import { Button } from "@/components/Button";
 import { NewBadge } from "@/components/NewBadge";
 import { prefersReducedMotion } from "@/lib/motion";
-import type { Item } from "@/lib/storage";
+import type { Item } from "@/lib/trips";
 
 type ItemRowProps = {
   item: Item;

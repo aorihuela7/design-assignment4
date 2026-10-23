@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-// A banner about the page as a whole, e.g. storage problems. Icon plus text, never color alone.
-// An optional action (like Reload) sits under the text, so the banner is never a dead end.
+// A banner about the page as a whole, e.g. trips that couldn’t load. Icon plus text, never color alone.
+// An optional action (like Try again) sits under the text, so the banner is never a dead end.
 export function Notice({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div role="status" className="flex items-start gap-3 rounded border border-ink bg-surface p-4 text-ink">

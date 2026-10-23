@@ -1,17 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { BoardingPassPreview } from "@/components/BoardingPassCard";
 import { Button, ButtonLink } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { NOT_SAVED } from "@/components/ErrorMessage";
 import { TextField } from "@/components/Field";
+import { LoadFailed } from "@/components/LoadFailed";
 import { Page } from "@/components/Page";
-import { StorageNotice } from "@/components/StorageNotice";
 import { tripNameMessage } from "@/components/tripNameMessage";
 import { uniqueCodes } from "@/lib/codes";
-import { createStarterTrips } from "@/lib/starters";
-import { createId, createIfMissing, updateData, useStorage } from "@/lib/storage";
+import { createId, createTrip, useStorage } from "@/lib/storage";
 import { cleanName, tripNameProblem, tripTitleTransition } from "@/lib/trips";
 
 // Stands in for the new trip's id when working out its code; no saved trip has it.
@@ -24,17 +24,16 @@ export function NewTrip() {
   const inputRef = useRef<HTMLInputElement>(null);
   // No errors before the first submit; after it, the error follows what's typed.
   const [attempted, setAttempted] = useState(false);
-  // Set on Create trip, just before leaving, so the preview's title can morph into the
-  // new page's title. (An id can't be made during prerendering.)
+  // Not saved, for a reason other than the name: said under the field until it changes.
+  const [failed, setFailed] = useState(false);
+  const saving = useRef(false);
+  // Set on Create trip, so the preview's title can morph into the new page's title.
+  // (An id can't be made during prerendering.)
   const [createdId, setCreatedId] = useState<string | null>(null);
 
-  // Arriving here first still counts as a first visit: the starter lists come too.
-  useEffect(() => {
-    createIfMissing(createStarterTrips);
-  }, []);
-
-  const problem = storage.status === "ready" ? storage.problem : null;
-  const trips = storage.status === "ready" ? (storage.data?.trips ?? []) : [];
+  // Once saved, the new trip is among them until the page leaves: left out, so it
+  // doesn't clash with itself.
+  const trips = (storage.status === "ready" ? storage.trips : []).filter((trip) => trip.id !== createdId);
   const nameProblem = attempted ? tripNameProblem(name, trips) : null;
   // The code it will get: worked out with the trip added last, as it will be saved.
   const previewName = cleanName(name);
@@ -42,39 +41,47 @@ export function NewTrip() {
     ? (uniqueCodes([...trips, { id: PREVIEW_ID, name: previewName }]).get(PREVIEW_ID) ?? "")
     : "";
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
-    if (storage.status !== "ready" || !storage.data) return;
-    if (tripNameProblem(name, storage.data.trips)) {
+    if (storage.status !== "ready" || saving.current) return;
+    if (tripNameProblem(name, storage.trips)) {
       setAttempted(true); // keeps exactly what was typed
       inputRef.current?.focus();
       return;
     }
-    const clean = cleanName(name);
     const id = createId();
     setCreatedId(id);
-    const trip = { id, name: clean, items: [], lastPackedAt: null, promptDismissedAt: null, ticksClearedAt: null, updatedAt: new Date().toISOString() };
-    updateData((data) => ({ ...data, trips: [...data.trips, trip] }));
-    // The empty list focuses its Add item field.
-    router.push(`/trips/${id}`);
+    saving.current = true;
+    const result = await createTrip(id, cleanName(name));
+    saving.current = false;
+    if (result === "saved") {
+      // The empty list focuses its Add item field.
+      router.push(`/trips/${id}`);
+      return;
+    }
+    setFailed(true);
+    inputRef.current?.focus();
   }
 
   return (
     <Page title="New trip" back={{ href: "/", label: "Back to My trips" }}>
-      <StorageNotice problem={problem} />
-      {/* Data from a newer version must not be written over. */}
+      {storage.status === "failed" && <LoadFailed />}
+      {/* Without the trips, names can't be checked: the form waits for Try again. */}
       {/* One short field: a readable width, not the full page. */}
-      {problem !== "newer" && (
+      {storage.status !== "failed" && (
         <Card className="w-full max-w-xl">
           <form noValidate onSubmit={submit} className="flex flex-col gap-4">
             <TextField
               ref={inputRef}
               label="Trip name"
-              error={nameProblem ? tripNameMessage(nameProblem) : undefined}
+              error={nameProblem ? tripNameMessage(nameProblem) : failed ? NOT_SAVED : undefined}
               placeholder="e.g. Beach weekend"
               autoComplete="off"
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value);
+                setFailed(false);
+              }}
             />
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button type="submit" variant="primary">
@@ -85,7 +92,7 @@ export function NewTrip() {
           </form>
         </Card>
       )}
-      {problem !== "newer" && (
+      {storage.status !== "failed" && (
         <div className="flex w-full max-w-xl flex-col gap-2">
           <p aria-hidden="true" className="font-mono text-xs uppercase tracking-wider text-muted">
             Preview
