@@ -324,3 +324,25 @@ Running 2 tests using 1 worker
 
   2 passed (21.2s)
 ```
+
+## Step 8: Security review
+
+`/security-review` ran on `assignment-4` (compared with `main`) on 23 Oct. It found **no vulnerabilities** above its bar (high or medium, confidence 8 of 10 or more).
+
+What it checked and ruled out:
+
+- **Row-level security:** every table has separate select, insert, update and delete policies for signed-in users, keyed on `auth.jwt()->>'sub'`. Signed-out visitors (`anon`) have no grants. No one can create rows for someone else or give a trip away, and an item can't move onto another person's trip.
+- **Functions and triggers:** `add_starter_trips` and `touch_trip` run as the caller, with `search_path = ''`, so their writes also go through row-level security.
+- **Secrets:** the browser uses only the publishable key and the Clerk session token, and there are no secrets in the diff.
+- **Injection:** queries go through the parameterised query builder, and Open-Meteo URLs are built with `URLSearchParams` against fixed hosts.
+- **XSS:** there's no `dangerouslySetInnerHTML`, and links are made from database UUIDs or fixed paths.
+- **Development-only code:** the `?weather=` simulation is left out of production builds.
+
+It also raised four lower-risk points, plus one you added. Here's what we did with each:
+
+| Point | Real risk here? | Decision |
+|---|---|---|
+| The step 7 restore migration wasn't idempotent, and it was run by hand, so it isn't in the migration history | Small. In filename order the restore runs after the break, so a fresh project ends up secure. But a `db push` on this project would stop on `drop policy`, and a restore that failed after the break would leave a database open. | **Fixed** (`760da64`): `drop policy if exists`, so it never fails and does nothing where it already ran. Its version sorts after the break. The README's Database section explains the pair and how to check for 4, 4 and 2 policies. |
+| The Supabase MCP server could write to the database | Not for the app, which never uses it. It is a risk for development: an agent, or instructions hidden in data it reads, could change the real database. | **Fixed** (`0e02276`): `read_only=true` in `.mcp.json`. New migrations go through the SQL Editor, or by switching it back on purpose. |
+| Playwright keeps a trace of a failed test, including the test users' cookies and tokens | Low. They belong to development-instance test accounts, stay on this computer, and `test-results/` is git-ignored. | **Not fixed:** the trace is the best way to see why a test failed, and these tokens open nothing real. |
+| Clerk's `createRouteMatcher` is deprecated, and a path-based check can leave protected server resources reachable | Not here: the pages hold no data on the server. Everything comes from Supabase under row-level security, so even a skipped page check would show nothing. | **Not fixed:** moving `auth.protect()` into every page is a bigger change for no gain today. Revisit before Clerk removes the function. |
