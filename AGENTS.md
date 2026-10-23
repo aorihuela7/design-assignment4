@@ -10,6 +10,7 @@
 - Stay on free tiers.
 - No package beyond Clerk, Supabase and Playwright without asking me first.
 - When unsure, ask me (I get push notifications on my phone).
+- When you finish a task, or when you need a decision from me, send me a push notification with a one-line summary of what you did or what you need.
 
 ## Stack
 Next.js (App Router) and Tailwind CSS. Clerk for sign-in (development keys only). Supabase for data. Open-Meteo for weather. Playwright for one end-to-end test. Deployed on Vercel's free Hobby plan.
