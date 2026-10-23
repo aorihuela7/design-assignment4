@@ -41,6 +41,7 @@ import {
 import { useNow } from "@/lib/useNow";
 import { placeLabel } from "@/lib/weather";
 import { AddItemForm } from "./AddItemForm";
+import { useForecast } from "./Forecast";
 import { BACK_TO_MY_TRIPS, ListLoading } from "./ListLoading";
 import { ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "./ItemRow";
 import { ProgressBar } from "./ProgressBar";
@@ -116,6 +117,7 @@ export function PackingList() {
   const [takeoff, setTakeoff] = useState<"flying" | "landed" | null>(null);
 
   const trip = storage.status === "ready" ? storage.trips.find((t) => t.id === id) : undefined;
+  const forecast = useForecast(trip?.destination ?? null);
 
   // The tab title names the list too, so the person knows where they are.
   const tabTitle = trip?.name ?? deletedName ?? (storage.status === "ready" ? "Trip not found" : null);
@@ -374,7 +376,7 @@ export function PackingList() {
       ))}
 
       {/* After the list, so the list comes first and nothing loading here moves it. */}
-      <Weather trip={trip} onSetDestination={saveDestination} onAdd={add} />
+      <Weather trip={trip} forecast={forecast} onSetDestination={saveDestination} onAdd={add} />
 
       <TripActions
         trip={trip}

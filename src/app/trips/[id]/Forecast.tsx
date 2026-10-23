@@ -15,16 +15,20 @@ import {
 
 type ForecastState = { status: "loading" } | { status: "failed" } | { status: "ready"; days: Day[] };
 
+export type LoadedForecast = ForecastState & { retry: () => void };
+
 // The destination's forecast: loading, then the days or failed. Retry loads it again.
-export function useForecast({ latitude, longitude, timezone }: ForecastPlace) {
-  const key = forecastKey({ latitude, longitude, timezone });
+// Null when there's no destination. One per page, so everything showing the weather
+// shares it and Open-Meteo is asked once.
+export function useForecast(place: ForecastPlace | null): LoadedForecast | null {
+  const latitude = place?.latitude ?? null;
+  const longitude = place?.longitude ?? null;
+  const timezone = place?.timezone ?? null;
+  const key = latitude === null || longitude === null ? null : forecastKey({ latitude, longitude, timezone });
   const [attempt, setAttempt] = useState(0);
-  // A forecast already in this tab shows straight away, with no loading rows.
-  const [loaded, setLoaded] = useState<{ key: string; attempt: number; days: Day[] | null } | null>(() => {
-    const days = cachedForecast({ latitude, longitude, timezone });
-    return days ? { key, attempt: 0, days } : null;
-  });
+  const [loaded, setLoaded] = useState<{ key: string; attempt: number; days: Day[] | null } | null>(null);
   useEffect(() => {
+    if (key === null || latitude === null || longitude === null) return;
     let current = true;
     fetchForecast({ latitude, longitude, timezone }).then(
       (days) => current && setLoaded({ key, attempt, days }),
@@ -35,12 +39,11 @@ export function useForecast({ latitude, longitude, timezone }: ForecastPlace) {
     };
   }, [key, attempt, latitude, longitude, timezone]);
 
-  const state: ForecastState =
-    loaded?.key !== key || loaded.attempt !== attempt
-      ? { status: "loading" }
-      : loaded.days
-        ? { status: "ready", days: loaded.days }
-        : { status: "failed" };
+  if (key === null || latitude === null || longitude === null) return null;
+  const fresh = loaded?.key === key && loaded.attempt === attempt ? loaded : null;
+  // A forecast already in this tab shows straight away, with no loading rows.
+  const days = fresh ? fresh.days : cachedForecast({ latitude, longitude, timezone });
+  const state: ForecastState = days ? { status: "ready", days } : fresh ? { status: "failed" } : { status: "loading" };
   return { ...state, retry: () => setAttempt((n) => n + 1) };
 }
 

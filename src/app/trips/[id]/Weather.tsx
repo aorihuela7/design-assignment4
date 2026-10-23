@@ -7,11 +7,13 @@ import type { SaveResult } from "@/lib/storage";
 import type { Destination, Item, Section, Trip } from "@/lib/trips";
 import { placeLabel, type Place } from "@/lib/weather";
 import { DestinationSearch } from "./DestinationSearch";
-import { Forecast, useForecast } from "./Forecast";
+import { Forecast, type LoadedForecast } from "./Forecast";
 import { Suggestions } from "./Suggestions";
 
 type WeatherProps = {
   trip: Trip;
+  // The destination's forecast, loaded by the page; null without a destination.
+  forecast: LoadedForecast | null;
   // Resolves to whether it saved.
   onSetDestination: (destination: Destination | null) => Promise<boolean>;
   // Adds a suggestion the way the Add item form adds an item.
@@ -23,7 +25,7 @@ const HEADING_ID = "weather-heading";
 // Where the trip is going and its weather. Without a destination, an invitation to add
 // one; with one, its forecast and what to pack for it, then Change destination and
 // Remove destination.
-export function Weather({ trip, onSetDestination, onAdd }: WeatherProps) {
+export function Weather({ trip, forecast, onSetDestination, onAdd }: WeatherProps) {
   const { destination } = trip;
   const [changing, setChanging] = useState(false);
   // Once the person asks for the search (Change, Remove), its field takes focus.
@@ -66,7 +68,7 @@ export function Weather({ trip, onSetDestination, onAdd }: WeatherProps) {
         {destination ? `Weather in ${placeLabel(destination)}` : "Weather"}
       </SectionHeading>
 
-      {!destination || changing ? (
+      {!destination || !forecast || changing ? (
         <Card className="flex flex-col gap-4">
           {!destination && <p>Add where you’re going to see its weather for the next 7 days.</p>}
           <DestinationSearch
@@ -79,7 +81,7 @@ export function Weather({ trip, onSetDestination, onAdd }: WeatherProps) {
       ) : (
         <>
           <DestinationForecast
-            destination={destination}
+            forecast={forecast}
             items={trip.items}
             onAdd={onAdd}
             focusHeading={() => heading.current?.focus()}
@@ -99,15 +101,14 @@ export function Weather({ trip, onSetDestination, onAdd }: WeatherProps) {
 }
 
 type DestinationForecastProps = {
-  destination: Destination;
+  forecast: LoadedForecast;
   items: Item[];
   onAdd: (name: string, section: Section) => Promise<SaveResult>;
   // Where focus waits when what had it goes (Retry, the last suggestion).
   focusHeading: () => void;
 };
 
-function DestinationForecast({ destination, items, onAdd, focusHeading }: DestinationForecastProps) {
-  const forecast = useForecast(destination);
+function DestinationForecast({ forecast, items, onAdd, focusHeading }: DestinationForecastProps) {
   return (
     <>
       <Forecast
