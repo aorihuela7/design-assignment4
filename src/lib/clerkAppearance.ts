@@ -7,8 +7,9 @@ export const clerkAppearance: NextClerkProviderProps["appearance"] = {
   // utility classes come after them (see globals.css).
   cssLayerName: "clerk",
   variables: {
-    // Continue is the primary action, so it's the only thing in the accent.
-    colorPrimary: "var(--color-accent)",
+    // Clerk also uses its primary color for links, so it's ink here; only
+    // Continue, the primary action, gets the accent (below).
+    colorPrimary: "var(--color-ink)",
     colorPrimaryForeground: "var(--color-white)",
     colorForeground: "var(--color-ink)",
     colorMutedForeground: "var(--color-muted)",
@@ -24,7 +25,12 @@ export const clerkAppearance: NextClerkProviderProps["appearance"] = {
     borderRadius: "var(--radius)",
   },
   elements: {
-    formButtonPrimary: "uppercase tracking-wider",
+    // Like the app's primary button: flat accent, no gradient or shadow.
+    formButtonPrimary:
+      "bg-accent bg-none uppercase tracking-wider shadow-none hover:bg-accent-hover active:bg-accent-pressed",
+    // Like the app's cards: a 1px line, no drop shadow.
+    cardBox: "rounded border border-line shadow-none",
+    footerActionLink: "underline underline-offset-4 hover:decoration-2",
     // The account button on the band: a 32px avatar in a 44px target.
     userButtonTrigger: "rounded-full p-1.5",
     avatarBox: "size-8",
