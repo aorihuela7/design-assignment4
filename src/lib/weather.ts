@@ -79,8 +79,9 @@ function toPlace(value: unknown): Place[] {
   ];
 }
 
-// "Lisbon, Lisbon District, Portugal": how a place is told apart from others with its name.
-export function placeLabel(place: Place) {
+// "Lisbon, Lisbon District, Portugal" for a place found; "Lisbon, Portugal" for a saved
+// destination, which keeps no region.
+export function placeLabel(place: Pick<Place, "name" | "country"> & { region?: string | null }) {
   return [place.name, place.region, place.country].filter(Boolean).join(", ");
 }
 

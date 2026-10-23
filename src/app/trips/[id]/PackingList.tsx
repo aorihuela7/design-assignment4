@@ -23,6 +23,7 @@ import {
   removeItem,
   renameTrip,
   restoreItem,
+  setDestination,
   setPacked,
   useStorage,
   type SaveResult,
@@ -33,15 +34,18 @@ import {
   SECTIONS,
   shouldAskNewTrip,
   tripTitleTransition,
+  type Destination,
   type Item,
   type Section,
 } from "@/lib/trips";
 import { useNow } from "@/lib/useNow";
+import { placeLabel } from "@/lib/weather";
 import { AddItemForm } from "./AddItemForm";
 import { BACK_TO_MY_TRIPS, ListLoading } from "./ListLoading";
 import { ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "./ItemRow";
 import { ProgressBar } from "./ProgressBar";
 import { TripActions } from "./TripActions";
+import { Weather } from "./Weather";
 
 const COUNT_ID = "packed-count";
 const UNDO_BAR_ID = "undo-bar";
@@ -232,6 +236,11 @@ export function PackingList() {
     if (clearAll) setAnnouncement("Ticks cleared");
     focusCount();
   };
+  const saveDestination = async (destination: Destination | null) => {
+    const saved = await setDestination(tripId, destination);
+    if (saved) setAnnouncement(destination ? `Destination set to ${placeLabel(destination)}` : "Destination removed");
+    return saved;
+  };
   const rename = async (name: string) => {
     const result = await renameTrip(tripId, name);
     if (result === "saved") setAnnouncement(`Renamed to ${name}`);
@@ -363,6 +372,9 @@ export function PackingList() {
           </Card>
         </section>
       ))}
+
+      {/* After the list, so the list comes first and nothing loading here moves it. */}
+      <Weather trip={trip} onSetDestination={saveDestination} />
 
       <TripActions
         trip={trip}
