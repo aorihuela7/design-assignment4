@@ -17,6 +17,8 @@ type HeaderProps = {
   titleTransition?: string;
   // Pages for signed-out visitors offer Sign in and Sign up; the rest, the account menu.
   signedOut?: boolean;
+  // A trip's page is wider, for its list and its weather side by side.
+  wide?: boolean;
 };
 
 // Amber caps on the band; the accent stays for each page's primary action.
@@ -30,10 +32,11 @@ export function Header({
   code,
   titleTransition,
   signedOut = false,
+  wide = false,
 }: HeaderProps) {
   return (
     <header data-surface="board" className="bg-board text-amber">
-      <div className="mx-auto w-full max-w-225 px-4 pt-3 pb-5 sm:px-6">
+      <div className={`mx-auto w-full ${wide ? "max-w-288" : "max-w-225"} px-4 pt-3 pb-5 sm:px-6`}>
         <div className="flex items-center gap-4 font-mono text-xs uppercase tracking-widest">
           <Link href="/" aria-current={isHome ? "page" : undefined} className={`${bandLink} hover:underline`}>
             Pack Again

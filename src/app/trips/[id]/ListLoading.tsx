@@ -9,7 +9,7 @@ export const BACK_TO_MY_TRIPS = { href: "/", label: "Back to My trips" };
 // nothing jumps when the trip arrives.
 export function ListLoading() {
   return (
-    <Page title="Packing list" back={BACK_TO_MY_TRIPS} titleLoading>
+    <Page title="Packing list" back={BACK_TO_MY_TRIPS} titleLoading wide>
       <div className="border-b border-line pt-2">
         <div aria-hidden="true" className="flex min-h-7 items-center gap-3">
           <span className="flex-1 border-t-2 border-dashed border-line" />

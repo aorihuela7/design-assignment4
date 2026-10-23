@@ -144,12 +144,12 @@ export function PackingList() {
   if (storage.status === "loading") return <ListLoading />;
 
   if (deletedName && !trip) {
-    return <Page title={deletedName} back={BACK_TO_MY_TRIPS}>{null}</Page>;
+    return <Page title={deletedName} back={BACK_TO_MY_TRIPS} wide>{null}</Page>;
   }
 
   if (storage.status === "failed") {
     return (
-      <Page title="Packing list" back={BACK_TO_MY_TRIPS}>
+      <Page title="Packing list" back={BACK_TO_MY_TRIPS} wide>
         <LoadFailed />
       </Page>
     );
@@ -159,7 +159,7 @@ export function PackingList() {
   // security never returns it).
   if (!trip) {
     return (
-      <Page title="Trip not found" back={BACK_TO_MY_TRIPS}>
+      <Page title="Trip not found" back={BACK_TO_MY_TRIPS} wide>
         <Card>
           <p>This trip doesn’t exist anymore.</p>
         </Card>
@@ -275,6 +275,7 @@ export function PackingList() {
     <Page
       title={trip.name}
       back={BACK_TO_MY_TRIPS}
+      wide
       code={uniqueCodes(storage.trips).get(trip.id)}
       titleTransition={tripTitleTransition(trip.id)}
     >
