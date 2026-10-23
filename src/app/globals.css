@@ -1,3 +1,6 @@
+/* Clerk's styles get their own layer after Tailwind's base, so its components keep
+   their look but the app's utilities still win (see src/lib/clerkAppearance.ts). */
+@layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 
 /* "Departures" theme. Only these colors exist in this app. */
@@ -160,6 +163,18 @@
   }
 
   [data-surface="board"] :focus-visible {
+    outline-color: var(--color-amber);
+  }
+}
+
+/* The clerk layer comes after base, so Clerk's controls get the same ring again here. */
+@layer components {
+  :is([class^="cl-"], [class*=" cl-"]):focus-visible {
+    outline: 2px solid var(--color-board);
+    outline-offset: 2px;
+  }
+
+  [data-surface="board"] :is([class^="cl-"], [class*=" cl-"]):focus-visible {
     outline-color: var(--color-amber);
   }
 }
