@@ -31,6 +31,16 @@ Supabase Postgres, migrations in `supabase/migrations/`, diagram in `docs/data-m
 - `profiles`: `user_id` (primary key) and `starters_added_at`. Select and insert only. `add_starter_trips(starters jsonb)` makes the profile and the starter trips in one transaction, and does nothing if the profile already exists.
 - Trips saved in a browser before accounts (localStorage) are ignored: everyone starts fresh.
 
+## Weather
+Open-Meteo (no key) is called from the browser, not from our server. Decided 23 Oct, step 6, because:
+- There's no key to hide, which is the main reason to go through a server.
+- Each person's own IP gets Open-Meteo's per-IP limit (10,000 calls a day). Vercel's IPs are shared with other apps, so calls from our server could be refused because of traffic that isn't ours.
+- On Vercel's serverless functions an in-memory cache rarely survives between requests, and a shared cache costs extra. So the server wouldn't cache much better than the browser.
+- It uses no function calls or CPU time on the Hobby plan.
+- The trade-off: Open-Meteo sees each person's IP with the destination, and the input checks and the timeout live in browser code.
+
+Only the destination is saved, never the forecast. "Weather data by Open-Meteo.com" links to open-meteo.com next to the weather.
+
 ## Design
 The Departures theme: boarding passes, airport signage, the navy band, amber, B612 and Barlow Condensed. The accent color is for the primary action only.
 
