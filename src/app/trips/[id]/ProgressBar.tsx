@@ -54,7 +54,7 @@ export function ProgressBar({
     <div
       ref={bar}
       data-stuck={stuck || undefined}
-      className="sticky top-0 z-30 border-b border-line bg-canvas pt-2 pb-1 data-stuck:bleed lg:data-stuck:[border-image:none]"
+      className="sticky top-0 z-30 border-b border-line bg-canvas pt-2 pb-1 data-stuck:bleed lg:data-stuck:[border-image-source:none]"
     >
       <div className="flex min-h-7 items-center gap-x-4">
         {/* Progress, or All packed in its place once the plane has taken off. */}
