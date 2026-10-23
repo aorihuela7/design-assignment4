@@ -23,7 +23,13 @@ Next.js (App Router) and Tailwind CSS. Clerk for sign-in (development keys only)
 - Never use the Supabase secret key in the browser.
 
 ## Data model
-To fill in at step 2.
+Supabase Postgres, migrations in `supabase/migrations/`, diagram in `docs/data-model.md`.
+- Every row belongs to one person: `user_id text not null default auth.jwt()->>'sub'`, the Clerk user id from the session token. Text, not uuid; never `auth.uid()`.
+- Row-level security on every table. Separate select, insert, update and delete policies for `authenticated`, each checking `(select auth.jwt()->>'sub') = user_id`. `anon` has no grants.
+- `trips`: `id`, `user_id`, `name` (1–40 characters, unique per person ignoring case), an optional destination (`destination_name`, `destination_country`, `latitude`, `longitude`, `timezone`; all or nothing, and no forecast saved), `last_packed_at`, `prompt_dismissed_at`, `ticks_cleared_at`, `created_at` (the order trips were made in) and `updated_at` (set by triggers on any change to the trip or its items).
+- `items`: `id`, `user_id`, `trip_id` (deleting a trip deletes its items), `name` (1–60 characters, unique per trip ignoring case), `section` (clothes, toiletries, tech, documents or other), `packed`, `is_new` and `created_at` (the order items were added in). The insert and update policies also check that the trip belongs to the same person.
+- `profiles`: `user_id` (primary key) and `starters_added_at`. Select and insert only. `add_starter_trips(starters jsonb)` makes the profile and the starter trips in one transaction, and does nothing if the profile already exists.
+- Trips saved in a browser before accounts (localStorage) are ignored: everyone starts fresh.
 
 ## Design
 The Departures theme: boarding passes, airport signage, the navy band, amber, B612 and Barlow Condensed. The accent color is for the primary action only.
