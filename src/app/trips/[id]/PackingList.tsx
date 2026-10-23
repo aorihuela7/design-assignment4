@@ -420,7 +420,6 @@ export function PackingList() {
               </Card>
             </section>
           ))}
-
         </div>
       </div>
     </Page>
