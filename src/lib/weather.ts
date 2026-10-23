@@ -23,7 +23,26 @@ const TIMEOUT_MS = 8000;
 // Forecasts change through the day, so one is kept for 30 minutes in this tab.
 const FORECAST_TTL_MS = 30 * 60 * 1000;
 
+// Development only: add ?weather=down or ?weather=none to a list page's address to see
+// Open-Meteo down (both calls fail) or finding no places. Production builds replace
+// process.env.NODE_ENV with "production", so this is always null there, and the
+// code that reads the address is left out of the build.
+function simulated(): "down" | "none" | null {
+  if (process.env.NODE_ENV !== "development") return null;
+  const value = new URLSearchParams(window.location.search).get("weather");
+  return value === "down" || value === "none" ? value : null;
+}
+
+// Long enough to see the loading state before the simulated answer.
+function pause(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function getJson(url: URL): Promise<unknown> {
+  if (simulated() === "down") {
+    await pause(2000);
+    throw new WeatherUnavailable();
+  }
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
     // A refused request answers { error: true, reason }, in words for developers.
@@ -89,6 +108,10 @@ export function placeLabel(place: Pick<Place, "name" | "country"> & { region?: s
 // Up to 5 places, most likely first. The browser keeps each search for a day, as
 // Open-Meteo asks.
 export async function searchPlaces(query: string): Promise<Place[]> {
+  if (simulated() === "none") {
+    await pause(500);
+    return [];
+  }
   const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
   url.search = new URLSearchParams({ name: cleanName(query), count: "5", language: "en", format: "json" }).toString();
   const data = await getJson(url);
@@ -120,6 +143,8 @@ export function forecastKey({ latitude, longitude, timezone }: ForecastPlace) {
 
 // A forecast already loaded in this tab and still fresh, so the board shows at once.
 export function cachedForecast(destination: ForecastPlace): Day[] | null {
+  // A forecast already loaded mustn't hide a simulated outage.
+  if (simulated() === "down") return null;
   const hit = forecasts.get(forecastKey(destination));
   return hit && hit.expires > Date.now() ? hit.days : null;
 }
