@@ -23,7 +23,8 @@ type ProgressBarProps = {
 // height whatever they show, so the list never moves under the pointer.
 export function ProgressBar({ packed, total, countId, allPacked, takeoff, onForgot, message }: ProgressBarProps) {
   // Stuck to the top while the list scrolls under it: then its background and rule
-  // run the full window width, so the list clearly passes underneath.
+  // run the full window width, so the list clearly passes underneath. Beside the
+  // weather panel (wide screens) they stay in the list's column.
   const bar = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
   useEffect(() => {
@@ -41,7 +42,7 @@ export function ProgressBar({ packed, total, countId, allPacked, takeoff, onForg
     <div
       ref={bar}
       data-stuck={stuck || undefined}
-      className="sticky top-0 z-30 border-b border-line bg-canvas pt-2 data-stuck:bleed"
+      className="sticky top-0 z-30 border-b border-line bg-canvas pt-2 data-stuck:bleed lg:data-stuck:[border-image:none]"
     >
       {/* Progress, or All packed in its place once the plane has taken off. */}
       <div id={countId} tabIndex={-1} className="flex min-h-7 flex-col justify-center rounded">

@@ -47,7 +47,6 @@ import { ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "
 import { ProgressBar } from "./ProgressBar";
 import { TripActions } from "./TripActions";
 import { Weather } from "./Weather";
-import { WeatherSummary } from "./WeatherSummary";
 
 const COUNT_ID = "packed-count";
 const UNDO_BAR_ID = "undo-bar";
@@ -279,119 +278,125 @@ export function PackingList() {
       code={uniqueCodes(storage.trips).get(trip.id)}
       titleTransition={tripTitleTransition(trip.id)}
     >
-      <ProgressBar
-        packed={packed}
-        total={trip.items.length}
-        countId={COUNT_ID}
-        allPacked={allPacked}
-        takeoff={takeoff}
-        onForgot={() => {
-          // Centered, so the sticky bar doesn't cover the field.
-          inputRef.current?.scrollIntoView({ block: "center" });
-          inputRef.current?.focus({ preventScroll: true });
-        }}
-        message={
-          feedback?.text && (
-            <>
-              {/* One line, so the bar keeps its height; the full text is still read out. */}
-              <p className="flex min-w-0 items-center gap-1.5">
-                {feedback.failed && <ErrorIcon className="" />}
-                <span className="truncate">{feedback.text}</span>
-              </p>
-              {feedback.undo && (
-                <Button
-                  id={UNDO_BAR_ID}
-                  {...undoHoldProps(holdUndo)}
-                  aria-label={`Undo removing ${feedback.undo.item.name}`}
-                  onClick={() => feedback.undo && undoRemove(feedback.undo)}
-                  className="shrink-0"
-                >
-                  Undo
-                </Button>
-              )}
-            </>
-          )
-        }
-      />
+      {/* Phones: the weather first, then the list. Wider: the list on the left and the
+          weather beside it, staying in view while the list scrolls. The weather comes
+          first in the page either way, so the reading order matches a phone's screen. */}
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-x-10">
+        {/* Scrolls inside itself if it's taller than the window; the padding keeps focus
+            rings clear of its edges. */}
+        <div className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:-m-1 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:p-1">
+          <Weather trip={trip} forecast={forecast} onSetDestination={saveDestination} onAdd={add} />
+        </div>
 
-      {/* In the page, not a modal, and it never takes focus on load. */}
-      {now !== null && trip.lastPackedAt && shouldAskNewTrip(trip, now) && (
-        <section role="region" aria-labelledby="new-trip-heading">
-          <Card className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <SectionHeading id="new-trip-heading">Packing for a new trip?</SectionHeading>
-              {/* Why it's asking. Only after mount, so the date can use the person's time zone. */}
-              <p className="text-muted">Last packed {formatDay(trip.lastPackedAt)}.</p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button onClick={() => answer(true)}>Clear all ticks</Button>
-              <Button onClick={() => answer(false)}>Keep them</Button>
-            </div>
-          </Card>
-        </section>
-      )}
+        <div className="flex min-w-0 flex-col gap-6 lg:col-start-1 lg:row-start-1">
+          <ProgressBar
+            packed={packed}
+            total={trip.items.length}
+            countId={COUNT_ID}
+            allPacked={allPacked}
+            takeoff={takeoff}
+            onForgot={() => {
+              // Centered, so the sticky bar doesn't cover the field.
+              inputRef.current?.scrollIntoView({ block: "center" });
+              inputRef.current?.focus({ preventScroll: true });
+            }}
+            message={
+              feedback?.text && (
+                <>
+                  {/* One line, so the bar keeps its height; the full text is still read out. */}
+                  <p className="flex min-w-0 items-center gap-1.5">
+                    {feedback.failed && <ErrorIcon className="" />}
+                    <span className="truncate">{feedback.text}</span>
+                  </p>
+                  {feedback.undo && (
+                    <Button
+                      id={UNDO_BAR_ID}
+                      {...undoHoldProps(holdUndo)}
+                      aria-label={`Undo removing ${feedback.undo.item.name}`}
+                      onClick={() => feedback.undo && undoRemove(feedback.undo)}
+                      className="shrink-0"
+                    >
+                      Undo
+                    </Button>
+                  )}
+                </>
+              )
+            }
+          />
 
-      {trip.destination && forecast && (
-        <WeatherSummary destination={trip.destination} forecast={forecast} items={trip.items} />
-      )}
+          {/* In the page, not a modal, and it never takes focus on load. */}
+          {now !== null && trip.lastPackedAt && shouldAskNewTrip(trip, now) && (
+            <section role="region" aria-labelledby="new-trip-heading">
+              <Card className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <SectionHeading id="new-trip-heading">Packing for a new trip?</SectionHeading>
+                  {/* Why it's asking. Only after mount, so the date can use the person's time zone. */}
+                  <p className="text-muted">Last packed {formatDay(trip.lastPackedAt)}.</p>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button onClick={() => answer(true)}>Clear all ticks</Button>
+                  <Button onClick={() => answer(false)}>Keep them</Button>
+                </div>
+              </Card>
+            </section>
+          )}
 
-      <AddItemForm
-        items={trip.items}
-        onAdd={add}
-        // Clears the bar's message; a pending Undo row stays, since nothing in the list changed.
-        onError={() => setFeedback((current) => (current?.undo ? { ...current, text: null } : null))}
-        inputRef={inputRef}
-        forgotMode={allPacked}
-      />
+          <AddItemForm
+            items={trip.items}
+            onAdd={add}
+            // Clears the bar's message; a pending Undo row stays, since nothing in the list changed.
+            onError={() => setFeedback((current) => (current?.undo ? { ...current, text: null } : null))}
+            inputRef={inputRef}
+            forgotMode={allPacked}
+          />
 
-      {trip.items.length === 0 && !pending && (
-        <EmptyState>
-          <p>Nothing here yet. Add your first item.</p>
-        </EmptyState>
-      )}
+          {trip.items.length === 0 && !pending && (
+            <EmptyState>
+              <p>Nothing here yet. Add your first item.</p>
+            </EmptyState>
+          )}
 
-      {groupBySection(rows).map((group) => (
-        <section key={group.section} aria-labelledby={`section-${group.section}`} className="flex flex-col gap-2">
-          <SectionHeading id={`section-${group.section}`}>
-            {group.label}
-          </SectionHeading>
-          <Card padded={false}>
-            <ul className="divide-y divide-line">
-              {group.items.map((item) =>
-                item.id === pending?.item.id ? (
-                  <RemovedRow
-                    key={`removed-${item.id}`}
-                    name={item.name}
-                    onUndo={() => undoRemove(pending)}
-                    onHold={holdUndo}
-                  />
-                ) : (
-                  <ItemRow
-                    key={item.id}
-                    item={item}
-                    arrived={landed?.id === item.id ? landed.how : null}
-                    justPacked={item.id === justPackedId}
-                    onToggle={() => toggle(item.id)}
-                    onRemove={() => remove(item)}
-                  />
-                ),
-              )}
-            </ul>
-          </Card>
-        </section>
-      ))}
+          {groupBySection(rows).map((group) => (
+            <section key={group.section} aria-labelledby={`section-${group.section}`} className="flex flex-col gap-2">
+              <SectionHeading id={`section-${group.section}`}>
+                {group.label}
+              </SectionHeading>
+              <Card padded={false}>
+                <ul className="divide-y divide-line">
+                  {group.items.map((item) =>
+                    item.id === pending?.item.id ? (
+                      <RemovedRow
+                        key={`removed-${item.id}`}
+                        name={item.name}
+                        onUndo={() => undoRemove(pending)}
+                        onHold={holdUndo}
+                      />
+                    ) : (
+                      <ItemRow
+                        key={item.id}
+                        item={item}
+                        arrived={landed?.id === item.id ? landed.how : null}
+                        justPacked={item.id === justPackedId}
+                        onToggle={() => toggle(item.id)}
+                        onRemove={() => remove(item)}
+                      />
+                    ),
+                  )}
+                </ul>
+              </Card>
+            </section>
+          ))}
 
-      {/* After the list, so the list comes first and nothing loading here moves it. */}
-      <Weather trip={trip} forecast={forecast} onSetDestination={saveDestination} onAdd={add} />
-
-      <TripActions
-        trip={trip}
-        otherTrips={storage.trips.filter((t) => t.id !== tripId)}
-        packed={packed}
-        onClearTicks={clear}
-        onRename={rename}
-        onDelete={deleteAndLeave}
-      />
+          <TripActions
+            trip={trip}
+            otherTrips={storage.trips.filter((t) => t.id !== tripId)}
+            packed={packed}
+            onClearTicks={clear}
+            onRename={rename}
+            onDelete={deleteAndLeave}
+          />
+        </div>
+      </div>
     </Page>
   );
 }

@@ -1,11 +1,12 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Card } from "@/components/Card";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { SectionHeading } from "@/components/SectionHeading";
-import { TextButton } from "@/components/TextLink";
+import { TextButton, TextLink } from "@/components/TextLink";
 import type { SaveResult } from "@/lib/storage";
+import { suggestions } from "@/lib/suggestions";
 import type { Destination, Item, Section, Trip } from "@/lib/trips";
-import { placeLabel, type Place } from "@/lib/weather";
+import { degrees, placeLabel, type Place } from "@/lib/weather";
 import { DestinationSearch } from "./DestinationSearch";
 import { Forecast, type LoadedForecast } from "./Forecast";
 import { Suggestions } from "./Suggestions";
@@ -21,26 +22,48 @@ type WeatherProps = {
 };
 
 export const WEATHER_HEADING_ID = "weather-heading";
+const DETAILS_ID = "weather-details";
 
-// Where the trip is going and its weather. Without a destination, an invitation to add
-// one; with one, its forecast and what to pack for it, then Change destination and
-// Remove destination.
+// Everything about where the trip is going, together, and nowhere else: the
+// destination with Change and Remove, today's summary, the next 7 days, what to pack
+// for them and the credit to Open-Meteo. Without a destination, an invitation to add
+// one. On a phone it's one block at the top that opens and closes; wider, it's always
+// open, beside the list.
 export function Weather({ trip, forecast, onSetDestination, onAdd }: WeatherProps) {
   const { destination } = trip;
   const [changing, setChanging] = useState(false);
   // Once the person asks for the search (Change, Remove), its field takes focus.
   const [focusSearch, setFocusSearch] = useState(false);
   const [removeFailed, setRemoveFailed] = useState(false);
+  // Phones only: starts closed, so the list comes first.
+  const [expanded, setExpanded] = useState(false);
   const removing = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
   const changeButton = useRef<HTMLButtonElement>(null);
+
+  // Next keeps a visited page in the background (React's Activity). Coming back, the
+  // zone is closed and out of any change, as on a fresh visit.
+  useLayoutEffect(
+    () => () => {
+      setExpanded(false);
+      setChanging(false);
+    },
+    [],
+  );
+
+  // Where focus waits when what had it goes: the phone's button if it's showing, else
+  // the heading.
+  const focusZone = () => {
+    const target = toggle.current?.offsetParent ? toggle.current : heading.current;
+    target?.focus();
+  };
 
   const choose = async (place: Place) => {
     const { name, country, latitude, longitude, timezone } = place;
     if (!(await onSetDestination({ name, country, latitude, longitude, timezone }))) return false;
     setChanging(false);
-    // The search is gone: focus waits on the heading, which now names the place.
-    requestAnimationFrame(() => heading.current?.focus());
+    requestAnimationFrame(focusZone);
     return true;
   };
   const change = () => {
@@ -61,67 +84,149 @@ export function Weather({ trip, forecast, onSetDestination, onAdd }: WeatherProp
     setRemoveFailed(!removed);
   };
 
-  return (
-    <section aria-labelledby={WEATHER_HEADING_ID} className="flex flex-col gap-2">
-      {/* tabIndex -1: focus can wait here; no ring, since it isn't a control. Scrolled to,
-          it stops below the sticky packing bar. */}
-      <SectionHeading id={WEATHER_HEADING_ID} ref={heading} tabIndex={-1} className="scroll-mt-24 outline-none">
-        {destination ? `Weather in ${placeLabel(destination)}` : "Weather"}
-      </SectionHeading>
+  const searching = !destination || !forecast || changing;
 
-      {!destination || !forecast || changing ? (
-        <Card className="flex flex-col gap-4">
-          {!destination && <p>Add where you’re going to see its weather for the next 7 days.</p>}
-          <DestinationSearch
-            initialQuery={changing ? destination?.name : undefined}
-            autoFocus={focusSearch}
-            onChoose={choose}
-            onCancel={destination ? cancel : undefined}
-          />
-        </Card>
-      ) : (
-        <>
-          <DestinationForecast
-            forecast={forecast}
-            items={trip.items}
-            onAdd={onAdd}
-            focusHeading={() => heading.current?.focus()}
-          />
-          {/* Rare, so quiet text actions, like Rename trip and Delete trip. */}
-          <div className="flex flex-wrap gap-x-6">
-            <TextButton ref={changeButton} onClick={change}>
-              Change destination
-            </TextButton>
-            <TextButton onClick={remove}>Remove destination</TextButton>
-          </div>
-          {removeFailed && <ErrorMessage role="alert">Not removed. Check your connection and try again</ErrorMessage>}
-        </>
-      )}
+  return (
+    <section aria-labelledby={WEATHER_HEADING_ID} className="flex flex-col gap-3">
+      {/* Phones: the heading is the button that opens and closes the zone, and shows
+          today's summary while it's closed. */}
+      <h2 className="lg:hidden">
+        <button
+          ref={toggle}
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={DETAILS_ID}
+          onClick={() => setExpanded((open) => !open)}
+          className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded border border-line bg-surface px-4 py-3 text-left hover:border-ink"
+        >
+          {destination && forecast ? (
+            <TodaySummary destination={destination} forecast={forecast} items={trip.items} withPlace />
+          ) : (
+            <span className="flex min-w-0 flex-col">
+              <span className="font-mono text-xs leading-4 uppercase tracking-wider text-ink">Weather</span>
+              <span className="text-sm text-muted">Add a destination for weather tips</span>
+            </span>
+          )}
+          <Chevron open={expanded} />
+        </button>
+      </h2>
+      <div id={DETAILS_ID} className={`flex-col gap-3 ${expanded ? "flex" : "hidden lg:flex"}`}>
+        {/* The destination with Change and Remove on one line, wrapping if the name is
+            long. The heading shows on wider screens only, but names the zone on phones
+            too. tabIndex -1: focus can wait here; no ring, since it isn't a control. */}
+        <div className="flex flex-wrap items-center gap-x-4">
+          <SectionHeading id={WEATHER_HEADING_ID} ref={heading} tabIndex={-1} className="mr-auto hidden outline-none lg:block">
+            {destination ? `Weather in ${placeLabel(destination)}` : "Weather"}
+          </SectionHeading>
+          {!searching && (
+            <div className="flex gap-x-4">
+              <TextButton ref={changeButton} aria-label="Change destination" onClick={change}>
+                Change
+              </TextButton>
+              <TextButton aria-label="Remove destination" onClick={remove}>
+                Remove
+              </TextButton>
+            </div>
+          )}
+        </div>
+        {searching ? (
+          <Card className="flex flex-col gap-4">
+            {!destination && <p>Add where you’re going to see its weather for the next 7 days.</p>}
+            <DestinationSearch
+              initialQuery={changing ? destination?.name : undefined}
+              autoFocus={focusSearch}
+              onChoose={choose}
+              onCancel={destination ? cancel : undefined}
+            />
+          </Card>
+        ) : (
+          <>
+            {removeFailed && <ErrorMessage role="alert">Not removed. Check your connection and try again</ErrorMessage>}
+            {/* On a phone the button above already shows it. */}
+            <div className="hidden lg:flex">
+              <TodaySummary destination={destination} forecast={forecast} items={trip.items} />
+            </div>
+            <Forecast
+              state={forecast}
+              onRetry={() => {
+                focusZone();
+                forecast.retry();
+              }}
+            />
+            {forecast.status === "ready" && (
+              <Suggestions days={forecast.days} items={trip.items} onAdd={onAdd} onNoneLeft={focusZone} />
+            )}
+            {forecast.status !== "failed" && (
+              <p className="text-sm text-muted">
+                Weather data by{" "}
+                <TextLink href="https://open-meteo.com/" inline>
+                  Open-Meteo.com
+                </TextLink>
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </section>
   );
 }
 
-type DestinationForecastProps = {
+type TodaySummaryProps = {
+  destination: Destination;
   forecast: LoadedForecast;
   items: Item[];
-  onAdd: (name: string, section: Section) => Promise<SaveResult>;
-  // Where focus waits when what had it goes (Retry, the last suggestion).
-  focusHeading: () => void;
+  // The phone's button names the place; the panel's heading already does.
+  withPlace?: boolean;
 };
 
-function DestinationForecast({ forecast, items, onAdd, focusHeading }: DestinationForecastProps) {
+// Today in two lines: the high and low, then the first tip from the forecast. Two
+// lines whatever it says, so nothing moves as the forecast arrives.
+function TodaySummary({ destination, forecast, items, withPlace = false }: TodaySummaryProps) {
+  const today = forecast.status === "ready" ? forecast.days[0] : null;
+  const hint =
+    forecast.status === "ready"
+      ? (suggestions(forecast.days, items)[0]?.reason ?? "Nothing extra to pack for the weather")
+      : forecast.status === "failed"
+        ? "Weather is unavailable right now"
+        : null;
+  const bar = "inline-block rounded bg-line/60 align-middle";
+  const place = withPlace ? `${destination.name} · ` : "";
   return (
-    <>
-      <Forecast
-        state={forecast}
-        onRetry={() => {
-          focusHeading();
-          forecast.retry();
-        }}
-      />
-      {forecast.status === "ready" && (
-        <Suggestions days={forecast.days} items={items} onAdd={onAdd} onNoneLeft={focusHeading} />
-      )}
-    </>
+    <span className="flex min-w-0 flex-1 flex-col">
+      <span className="block h-4 truncate font-mono text-xs leading-4 uppercase tracking-wider text-ink">
+        <span aria-hidden="true">
+          {forecast.status === "failed" ? destination.name : `${place}Today `}
+          {today
+            ? `${degrees(today.high)} / ${degrees(today.low)}`
+            : forecast.status === "loading" && <span className={`${bar} h-2.5 w-24`} />}
+        </span>
+        <span className="sr-only">
+          {today
+            ? `Today in ${destination.name}: high ${degrees(today.high)}, low ${degrees(today.low)}.`
+            : `${destination.name}.`}
+        </span>
+      </span>
+      <span className="flex h-5 items-center text-sm text-muted">
+        {hint ? (
+          <span className="min-w-0 truncate">{hint}</span>
+        ) : (
+          <span aria-hidden="true" className={`${bar} h-3 w-48 max-w-full`} />
+        )}
+      </span>
+    </span>
+  );
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className={`ml-auto size-4 shrink-0 text-ink transition-transform duration-150 ease-out motion-reduce:transition-none ${
+        open ? "rotate-180" : ""
+      }`}
+    >
+      <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" />
+    </svg>
   );
 }

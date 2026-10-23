@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/Button";
 import { Notice } from "@/components/Notice";
-import { TextLink } from "@/components/TextLink";
 import {
   cachedForecast,
   degrees,
@@ -55,7 +54,7 @@ type ForecastProps = {
 };
 
 // The next 7 days as a departures board, the loading rows in its place, or a way to
-// try again. Credit to Open-Meteo sits under the board, as its licence asks.
+// try again.
 export function Forecast({ state, onRetry }: ForecastProps) {
   if (state.status === "failed") {
     return (
@@ -64,70 +63,67 @@ export function Forecast({ state, onRetry }: ForecastProps) {
       </Notice>
     );
   }
-  return (
-    <div className="flex flex-col gap-2">
-      {state.status === "loading" ? (
-        <>
-          <p role="status" className="sr-only">
-            Loading the forecast…
-          </p>
-          <Board hidden>
-            {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-              <LoadingRow key={i} />
-            ))}
-          </Board>
-        </>
-      ) : (
-        <Board>
-          {state.days.map((day) => (
-            <DayRow key={day.date} day={day} />
+  if (state.status === "loading") {
+    return (
+      <>
+        <p role="status" className="sr-only">
+          Loading the forecast…
+        </p>
+        <Board hidden>
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+            <LoadingRow key={i} />
           ))}
         </Board>
-      )}
-      <p className="text-sm text-muted">
-        Weather data by{" "}
-        <TextLink href="https://open-meteo.com/" inline>
-          Open-Meteo.com
-        </TextLink>
-      </p>
-    </div>
+      </>
+    );
+  }
+  return (
+    <Board>
+      {state.days.map((day) => (
+        <DayRow key={day.date} day={day} />
+      ))}
+    </Board>
   );
 }
 
-// Every cell is this tall whatever it shows (a weather name can take two lines at
-// 390px), so the loading rows and the days take the same room.
-const cell = "h-12 px-1.5 first:pl-0 last:pr-0 sm:px-3";
-// On wider screens the numbers get even columns, rather than crowding at the right.
-const number = "text-right whitespace-nowrap sm:w-24";
+// Every cell is this tall whatever it shows (a weather name can take two lines in a
+// narrow board), so the loading rows and the days take the same room. Sizes follow
+// the board's own width, so it fits a phone and the side panel alike.
+const cell = "h-12 px-1.5 first:pl-0 last:pr-0 @md:px-3";
+// In a roomy board the numbers get even columns, rather than crowding at the right.
+const number = "text-right whitespace-nowrap @md:w-24";
 
 // Navy and amber, like the band at the top. A table: a caption, column headings, and
 // each day as its row's heading.
 function Board({ hidden = false, children }: { hidden?: boolean; children: ReactNode }) {
   return (
-    <div data-surface="board" aria-hidden={hidden || undefined} className="rounded bg-board px-3 pb-1 sm:px-5">
-      <table className="w-full font-mono text-xs uppercase tracking-wider text-amber sm:text-sm">
-        <caption className="pt-3 pb-1 text-left text-xs text-white">Next 7 days</caption>
-        <thead className="text-xs text-white">
-          <tr className="border-b border-white/25">
-            <th scope="col" className={`${cell} text-left font-normal`}>
-              Day
-            </th>
-            <th scope="col" className={`${cell} w-full text-left font-normal`}>
-              Weather
-            </th>
-            <th scope="col" className={`${cell} ${number} font-normal`}>
-              High
-            </th>
-            <th scope="col" className={`${cell} ${number} font-normal`}>
-              Low
-            </th>
-            <th scope="col" className={`${cell} ${number} font-normal`}>
-              Rain
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-white/15">{children}</tbody>
-      </table>
+    // The outer box is what the sizes measure; an element can't size by its own width.
+    <div data-surface="board" aria-hidden={hidden || undefined} className="@container rounded bg-board">
+      <div className="px-3 pb-1 @md:px-5">
+        <table className="w-full font-mono text-xs uppercase tracking-wider text-amber @md:text-sm">
+          <caption className="pt-3 pb-1 text-left text-xs text-white">Next 7 days</caption>
+          <thead className="text-xs text-white">
+            <tr className="border-b border-white/25">
+              <th scope="col" className={`${cell} text-left font-normal`}>
+                Day
+              </th>
+              <th scope="col" className={`${cell} w-full text-left font-normal`}>
+                Weather
+              </th>
+              <th scope="col" className={`${cell} ${number} font-normal`}>
+                High
+              </th>
+              <th scope="col" className={`${cell} ${number} font-normal`}>
+                Low
+              </th>
+              <th scope="col" className={`${cell} ${number} font-normal`}>
+                Rain
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/15">{children}</tbody>
+        </table>
+      </div>
     </div>
   );
 }

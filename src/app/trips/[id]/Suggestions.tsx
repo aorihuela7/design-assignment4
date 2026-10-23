@@ -52,8 +52,7 @@ export function Suggestions({ days, items, onAdd, onNoneLeft }: SuggestionsProps
   }
 
   return (
-    // Room underneath, so the focus ring on Change destination clears the card.
-    <div className="mt-4 mb-2 flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
       <h3 id="suggestions-heading" className="font-mono text-xs uppercase tracking-wider text-ink">
         Pack for this weather
       </h3>
