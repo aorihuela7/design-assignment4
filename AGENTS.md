@@ -9,6 +9,7 @@
 - Work on the `assignment-4` branch.
 - Stay on free tiers.
 - No package beyond Clerk, Supabase and Playwright without asking me first.
+- Never kill or reuse processes or ports you didn’t start in this session; pick a free port and clean up only your own processes.
 - When unsure, ask me (I get push notifications on my phone).
 - When you finish a task, or when you need a decision from me, send me a push notification with a one-line summary of what you did or what you need.
 
