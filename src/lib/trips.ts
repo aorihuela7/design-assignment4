@@ -19,9 +19,20 @@ export type Item = {
   createdAt: string; // the order items were added in; Undo puts an item back with it
 };
 
+// Where a trip is going, from Open-Meteo's place search. Only the place is saved,
+// never its forecast.
+export type Destination = {
+  name: string;
+  country: string | null;
+  latitude: number;
+  longitude: number;
+  timezone: string | null;
+};
+
 export type Trip = {
   id: string;
   name: string;
+  destination: Destination | null;
   items: Item[]; // in the order they were added
   lastPackedAt: string | null; // set when every item is ticked
   promptDismissedAt: string | null; // "Packing for a new trip?" answered

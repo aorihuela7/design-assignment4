@@ -3,7 +3,16 @@ import { PostgrestError, type SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useSyncExternalStore } from "react";
 import { starterTrips } from "./starters";
 import { createSupabaseClient } from "./supabase";
-import { fullPack, itemNamed, tripNameProblem, untickAll, type Item, type Section, type Trip } from "./trips";
+import {
+  fullPack,
+  itemNamed,
+  tripNameProblem,
+  untickAll,
+  type Destination,
+  type Item,
+  type Section,
+  type Trip,
+} from "./trips";
 
 // Where trips are kept: Supabase, read and written from the browser as the signed-in
 // person, so row-level security only ever returns or changes their own rows. The page
@@ -28,13 +37,18 @@ export function createId() {
 // Rows as Supabase returns them. Trips come in the order they were made (so their
 // codes stay put), and items in the order they were added.
 const ITEM_COLUMNS = "id, name, section, packed, is_new, created_at";
-const TRIP_COLUMNS = `id, name, last_packed_at, prompt_dismissed_at, ticks_cleared_at, updated_at, items (${ITEM_COLUMNS})`;
+const TRIP_COLUMNS = `id, name, destination_name, destination_country, latitude, longitude, timezone, last_packed_at, prompt_dismissed_at, ticks_cleared_at, updated_at, items (${ITEM_COLUMNS})`;
 
 type ItemRow = { id: string; name: string; section: Section; packed: boolean; is_new: boolean; created_at: string };
 
 type TripRow = {
   id: string;
   name: string;
+  destination_name: string | null;
+  destination_country: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  timezone: string | null;
   last_packed_at: string | null;
   prompt_dismissed_at: string | null;
   ticks_cleared_at: string | null;
@@ -57,6 +71,17 @@ function toTrip(row: TripRow): Trip {
   return {
     id: row.id,
     name: row.name,
+    // All or nothing, as the database checks.
+    destination:
+      row.destination_name !== null && row.latitude !== null && row.longitude !== null
+        ? {
+            name: row.destination_name,
+            country: row.destination_country,
+            latitude: row.latitude,
+            longitude: row.longitude,
+            timezone: row.timezone,
+          }
+        : null,
     items: row.items.map(toItem),
     lastPackedAt: row.last_packed_at,
     promptDismissedAt: row.prompt_dismissed_at,
@@ -283,6 +308,27 @@ export function renameTrip(tripId: string, name: string) {
       return whyNotSaved(owner, error, (trips) => tripNameProblem(name, others(trips))?.kind === "duplicate");
     }
   }, "failed");
+}
+
+// Saves where a trip is going, or removes it with null.
+export function setDestination(tripId: string, destination: Destination | null) {
+  return enqueue(async (owner) => {
+    const ok = await succeeds(() =>
+      owner.db
+        .from("trips")
+        .update({
+          destination_name: destination?.name ?? null,
+          destination_country: destination?.country ?? null,
+          latitude: destination?.latitude ?? null,
+          longitude: destination?.longitude ?? null,
+          timezone: destination?.timezone ?? null,
+        })
+        .eq("id", tripId)
+        .throwOnError(),
+    );
+    if (ok) commit(owner, onTrip(tripId, { destination }));
+    return ok;
+  }, false);
 }
 
 // Its items go with it (on delete cascade).
