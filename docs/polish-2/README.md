@@ -11,6 +11,12 @@ Every screen before and after the second polish pass (branch `polish`), at 390 p
   - Beach weekend: going to Málaga.
   - Weekend at parents': all packed, plus one forgotten item.
 - **Loading and weather states:** loading states were held open by delaying requests in the browser. "Nothing found" and "unavailable" used the development-only `?weather=none` and `?weather=down`.
+- **The phone's weather block (after batch 1):** on a phone, the trip page's weather is one block that opens and closes. The weather screens (07–09, 12, 15–18) show it open; the rest show it closed, as it is when a trip page opens.
+- **Retaken after each batch** into `after/`, from the same starting point: A's trips reset to the untouched starter trips first.
+
+## New in `after/`
+
+- `34-trip-options-menu`: the Trip options menu, open (batch 1).
 
 ## Not captured
 
