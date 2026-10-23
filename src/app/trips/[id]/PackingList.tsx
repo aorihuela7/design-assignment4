@@ -374,7 +374,7 @@ export function PackingList() {
       ))}
 
       {/* After the list, so the list comes first and nothing loading here moves it. */}
-      <Weather trip={trip} onSetDestination={saveDestination} />
+      <Weather trip={trip} onSetDestination={saveDestination} onAdd={add} />
 
       <TripActions
         trip={trip}

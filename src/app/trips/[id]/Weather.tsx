@@ -3,22 +3,27 @@ import { Card } from "@/components/Card";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { SectionHeading } from "@/components/SectionHeading";
 import { TextButton } from "@/components/TextLink";
-import type { Destination, Trip } from "@/lib/trips";
+import type { SaveResult } from "@/lib/storage";
+import type { Destination, Item, Section, Trip } from "@/lib/trips";
 import { placeLabel, type Place } from "@/lib/weather";
 import { DestinationSearch } from "./DestinationSearch";
 import { Forecast, useForecast } from "./Forecast";
+import { Suggestions } from "./Suggestions";
 
 type WeatherProps = {
   trip: Trip;
   // Resolves to whether it saved.
   onSetDestination: (destination: Destination | null) => Promise<boolean>;
+  // Adds a suggestion the way the Add item form adds an item.
+  onAdd: (name: string, section: Section) => Promise<SaveResult>;
 };
 
 const HEADING_ID = "weather-heading";
 
 // Where the trip is going and its weather. Without a destination, an invitation to add
-// one; with one, its forecast, then Change destination and Remove destination.
-export function Weather({ trip, onSetDestination }: WeatherProps) {
+// one; with one, its forecast and what to pack for it, then Change destination and
+// Remove destination.
+export function Weather({ trip, onSetDestination, onAdd }: WeatherProps) {
   const { destination } = trip;
   const [changing, setChanging] = useState(false);
   // Once the person asks for the search (Change, Remove), its field takes focus.
@@ -73,7 +78,12 @@ export function Weather({ trip, onSetDestination }: WeatherProps) {
         </Card>
       ) : (
         <>
-          <DestinationForecast destination={destination} onRetry={() => heading.current?.focus()} />
+          <DestinationForecast
+            destination={destination}
+            items={trip.items}
+            onAdd={onAdd}
+            focusHeading={() => heading.current?.focus()}
+          />
           {/* Rare, so quiet text actions, like Rename trip and Delete trip. */}
           <div className="flex flex-wrap gap-x-6">
             <TextButton ref={changeButton} onClick={change}>
@@ -88,15 +98,28 @@ export function Weather({ trip, onSetDestination }: WeatherProps) {
   );
 }
 
-function DestinationForecast({ destination, onRetry }: { destination: Destination; onRetry: () => void }) {
+type DestinationForecastProps = {
+  destination: Destination;
+  items: Item[];
+  onAdd: (name: string, section: Section) => Promise<SaveResult>;
+  // Where focus waits when what had it goes (Retry, the last suggestion).
+  focusHeading: () => void;
+};
+
+function DestinationForecast({ destination, items, onAdd, focusHeading }: DestinationForecastProps) {
   const forecast = useForecast(destination);
   return (
-    <Forecast
-      state={forecast}
-      onRetry={() => {
-        onRetry();
-        forecast.retry();
-      }}
-    />
+    <>
+      <Forecast
+        state={forecast}
+        onRetry={() => {
+          focusHeading();
+          forecast.retry();
+        }}
+      />
+      {forecast.status === "ready" && (
+        <Suggestions days={forecast.days} items={items} onAdd={onAdd} onNoneLeft={focusHeading} />
+      )}
+    </>
   );
 }
