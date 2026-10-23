@@ -24,7 +24,7 @@ flowchart TD
   subgraph main["Main task"]
     direction TB
     B1["My trips"] -- "Open a card" --> B3["Packing list<br/>sticky bar: count and plane"]
-    B1 -- "New trip" --> B2["Trip name<br/>empty · duplicate · too long"]
+    B1 -- "New trip" --> B2["Trip name, with a live ticket<br/>empty · duplicate · too long"]
     B2 -- "Create trip" --> B3
     B3 -- "Add item" --> B4["Added X to Section<br/>or an error under the field"]
     B4 --> B3
@@ -67,6 +67,25 @@ npm run dev
 ```
 
 Then open http://localhost:3000. `npm run check:contrast` checks the color contrast of every pair the app uses.
+
+## Database
+
+The tables, row-level security policies and functions are the migrations in [`supabase/migrations/`](supabase/migrations/). They're applied in filename order, and each name starts with its version.
+
+Two of them are a pair from step 7:
+
+1. `20261023074853_step7_break_trips_select.sql` breaks row-level security on purpose, so the end-to-end test could be seen failing.
+2. `20261023212046_step7_restore_trips_select.sql` sorts after it and puts row-level security back.
+
+The restore uses `drop policy if exists`, so it never fails. On a fresh project both run and cancel out. On the current project the restore was run by hand in the SQL Editor, so it isn't in the migration history and does nothing when it's applied there.
+
+To check that a project ended up secure, run this in Supabase › SQL Editor:
+
+```sql
+select tablename, count(*) as policies from pg_policies where schemaname = 'public' group by tablename;
+```
+
+It should list 4 policies on `trips`, 4 on `items` and 2 on `profiles`. None should be named "Step 7: …".
 
 ## First-run check
 
@@ -121,7 +140,7 @@ An audit against AGENTS.md and the assignment, then the features left out of the
 - **One word for one thing:** a trip is a trip everywhere ("No trips yet", "Trip not found", "Loading your trips…"); both duplicate errors end "use another name".
 - **Shared components everywhere:** text links, text buttons and section headings now come from shared components, like buttons, fields and cards.
 - **Clearer hierarchy:** Rename and Delete are quiet text actions under Clear all ticks; the "Add an item" heading, which only repeated the button, is now for screen readers only; the boarding pass stub has its own tint.
-- **Motion where it helps:** opening a trip flies its plane down the runway first (0.35 s); ticking an item draws its check and strike-through; a just-added or restored item briefly shows a tint and an ink edge. None of it runs with reduced motion, and new-tab clicks open straight away.
+- **Motion where it helps:** opening a trip runs its plane down the runway (0.2 s) and morphs the card's name into the page title; ticking an item draws its check and strike-through, and ticking the last one takes off before All packed appears; added rows grow in, NEW badges stamp in. Everything takes 150 to 300 ms, never blocks a click, and none of it runs with reduced motion; new-tab clicks open straight away.
 - **No dead ends:** unexpected errors get a designed page with Try again; the newer-version notice has a Reload button; the home link says it's the current page on My trips.
 
 **Choices I made along the way**
@@ -129,7 +148,17 @@ An audit against AGENTS.md and the assignment, then the features left out of the
 - An empty list still focuses the Add item field when it opens, instead of the list name, because typing the first item is the only thing to do there.
 - "Forgot something? Add it" is a button styled as a link, because it moves focus within the page rather than going to another page.
 - Deleting a trip asks first instead of offering Undo: it removes a whole list, and the question is in place, not a modal.
-- Save in Rename and the Delete trip confirmation use the secondary button, so Add item stays the only accent on a list page.
+- Save in Rename uses the secondary button and the Delete trip confirmation a solid ink one, so Add item stays the only accent on a list page.
+
+## Polish pass
+
+Before the database step, an audit of every screen and state at 390px and 1440px ([audit and plan](docs/polish/audit.md), [before](docs/polish/before/) and [after](docs/polish/after/) screenshots) led to three batches:
+
+- **Visual polish:** the packing bar keeps one height, so the list never jumps when a message or All packed appears; runways line up from card to card; Remove is quieter than the item names; loading states have the shape of what loads; empty states are dashed tickets; one style for text actions; a warning sign and a solid ink button on Delete trip; the trip's code on its page; the Departures plane as the favicon.
+- **Motion:** the takeoffs, the title morph, rows easing in, the NEW stamp and panels fading in place, as above.
+- **A live ticket on New trip,** showing the name and code as you type.
+
+Ideas that need new saved fields wait in [docs/plan.md](docs/plan.md). The saved data and its key didn't change.
 
 ## What it remembers
 

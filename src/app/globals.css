@@ -1,3 +1,6 @@
+/* Clerk's styles get their own layer after Tailwind's base, so its components keep
+   their look but the app's utilities still win (see src/lib/clerkAppearance.ts). */
+@layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 
 /* "Departures" theme. Only these colors exist in this app. */
@@ -26,6 +29,40 @@
      across the name. Also motion-safe: only. */
   --animate-draw: draw 0.25s ease-out;
   --animate-strike: strike 0.3s ease-out;
+
+  /* Something that replaces what was there, like All packed after the takeoff. */
+  --animate-fade-in: fade-in 0.2s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* A panel opening in place (Rename trip, Delete trip): fades in as it drops 4px
+     into place. Opacity and a small move only, so it can be clicked from the start. */
+  --animate-reveal: reveal 0.2s ease-out;
+
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      translate: 0 -4px;
+    }
+  }
+
+  /* A NEW badge arriving: pressed on like a passport stamp, settling straight. */
+  --animate-stamp: stamp 0.2s ease-out;
+
+  @keyframes stamp {
+    from {
+      opacity: 0;
+      scale: 1.15;
+      rotate: -6deg;
+    }
+    60% {
+      opacity: 1;
+    }
+  }
 
   @keyframes draw {
     from {
@@ -57,10 +94,59 @@
   }
 }
 
+/* Type scale. Display (Barlow Condensed, caps): page title 4xl/5xl, trip names
+   on cards 3xl/4xl, section headings 2xl, All packed xl. Body (B612): base, sm
+   for small print. Labels (B612 Mono, caps): sm for buttons and text actions, xs
+   for field labels, counts, badges and ticket details. */
 @theme inline {
   --font-sans: var(--font-b612), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-b612-mono), ui-monospace, monospace;
   --font-display: var(--font-barlow-condensed), ui-sans-serif, sans-serif;
+}
+
+/* Paints an element's canvas background and bottom rule across the whole window.
+   Border images drawn past the box never cause horizontal scrolling. */
+@utility bleed {
+  border-image: linear-gradient(to top, var(--color-line) 1px, var(--color-canvas) 1px) fill 0 / 0 / 0 100vw;
+}
+
+/* Page transitions (React's <ViewTransition>, on the browser's View Transitions API).
+   A trip's card title morphs into its page title; the rest of the page fades. Clicks
+   pass through to the page while it runs, and reduced motion swaps pages instantly. */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-group(*) {
+  animation-duration: 250ms;
+}
+
+::view-transition-old(.page-out) {
+  animation: 150ms ease-in both page-out;
+}
+
+::view-transition-new(.page-in) {
+  animation: 200ms ease-out both page-in;
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 @layer base {
@@ -77,6 +163,18 @@
   }
 
   [data-surface="board"] :focus-visible {
+    outline-color: var(--color-amber);
+  }
+}
+
+/* The clerk layer comes after base, so Clerk's controls get the same ring again here. */
+@layer components {
+  :is([class^="cl-"], [class*=" cl-"]):focus-visible {
+    outline: 2px solid var(--color-board);
+    outline-offset: 2px;
+  }
+
+  [data-surface="board"] :is([class^="cl-"], [class*=" cl-"]):focus-visible {
     outline-color: var(--color-amber);
   }
 }

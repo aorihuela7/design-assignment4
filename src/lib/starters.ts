@@ -1,6 +1,7 @@
-import { createId, type Section, type Trip } from "./storage";
+import type { Section, Trip } from "./trips";
 
-// Created on a first visit only, when the storage key is missing.
+// Made once per person, on their first sign-in (add_starter_trips), and again only by
+// "Add the starter trips back" on My trips, after every trip is deleted.
 const STARTERS: { name: string; items: [Section, string][] }[] = [
   {
     name: "Weekend at parents'",
@@ -63,22 +64,11 @@ const STARTERS: { name: string; items: [Section, string][] }[] = [
   },
 ];
 
-export function createStarterTrips(now = Date.now()): Trip[] {
-  return STARTERS.map((starter, index) => ({
-    id: createId(),
+// The starter trips as Supabase takes them: [{ name, items: [{ name, section }] }].
+export function starterTrips() {
+  return STARTERS.map((starter) => ({
     name: starter.name,
-    items: starter.items.map(([section, name]) => ({
-      id: createId(),
-      name,
-      section,
-      packed: false,
-      isNew: false,
-    })),
-    lastPackedAt: null,
-    promptDismissedAt: null,
-    ticksClearedAt: null,
-    // One millisecond apart, so the order above survives the newest-first sort.
-    updatedAt: new Date(now - index).toISOString(),
+    items: starter.items.map(([section, name]) => ({ name, section })),
   }));
 }
 

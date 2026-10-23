@@ -18,7 +18,7 @@ flowchart TD
   subgraph main["Main task"]
     direction TB
     B1["My trips"] -- "Open a card" --> B3["Packing list<br/>sticky bar: count and plane"]
-    B1 -- "New trip" --> B2["Trip name<br/>empty · duplicate · too long"]
+    B1 -- "New trip" --> B2["Trip name, with a live ticket<br/>empty · duplicate · too long"]
     B2 -- "Create trip" --> B3
     B3 -- "Add item" --> B4["Added X to Section<br/>or an error under the field"]
     B4 --> B3

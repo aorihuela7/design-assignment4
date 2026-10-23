@@ -1,25 +1,32 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
 
-type Variant = "primary" | "secondary" | "quiet";
+type Variant = "primary" | "secondary" | "danger" | "quiet" | "subtle";
 
 const base =
-  "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded border px-4 py-2 font-mono text-sm uppercase tracking-wider";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded border px-4 py-2 font-mono uppercase tracking-wider";
 
 const variants = {
   // Accent is reserved for the primary action.
   primary:
-    "border-accent bg-accent text-white enabled:hover:border-accent-hover enabled:hover:bg-accent-hover enabled:active:border-accent-pressed enabled:active:bg-accent-pressed",
-  secondary: "border-ink bg-surface text-ink enabled:hover:bg-canvas enabled:active:bg-line",
-  // For repeated row actions: no border until hovered, so lists stay calm.
-  quiet: "border-transparent bg-transparent text-ink enabled:hover:border-ink enabled:active:bg-line",
+    "border-accent bg-accent text-sm text-white enabled:hover:border-accent-hover enabled:hover:bg-accent-hover enabled:active:border-accent-pressed enabled:active:bg-accent-pressed",
+  secondary: "border-ink bg-surface text-sm text-ink enabled:hover:bg-canvas enabled:active:bg-line",
+  // Confirms something that can't be undone: solid ink, distinct from Cancel without the accent.
+  danger:
+    "border-ink bg-ink text-sm text-white enabled:hover:border-muted enabled:hover:bg-muted enabled:active:border-board enabled:active:bg-board",
+  // In-place actions inside a row, like Undo: no border until hovered.
+  quiet: "border-transparent bg-transparent text-sm text-ink enabled:hover:border-ink enabled:active:bg-line",
+  // Repeated on every row, like Remove: small and muted until hovered or focused,
+  // so the item names lead. Still a 44px target.
+  subtle:
+    "border-transparent bg-transparent text-xs text-muted enabled:hover:border-ink enabled:hover:text-ink focus-visible:text-ink enabled:active:bg-line",
 };
 
 // Links can't be disabled, so they only need hover and pressed.
 const linkVariants = {
   primary:
-    "border-accent bg-accent text-white hover:border-accent-hover hover:bg-accent-hover active:border-accent-pressed active:bg-accent-pressed",
-  secondary: "border-ink bg-surface text-ink hover:bg-canvas active:bg-line",
+    "border-accent bg-accent text-sm text-white hover:border-accent-hover hover:bg-accent-hover active:border-accent-pressed active:bg-accent-pressed",
+  secondary: "border-ink bg-surface text-sm text-ink hover:bg-canvas active:bg-line",
 };
 
 // ComponentProps includes ref, which React 19 passes through like any prop.

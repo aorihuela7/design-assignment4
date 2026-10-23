@@ -4,24 +4,59 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorIcon } from "@/components/ErrorMessage";
 import { PAGE_TITLE_ID } from "@/components/Header";
+import { LoadFailed } from "@/components/LoadFailed";
 import { Page } from "@/components/Page";
-import { StorageNotice } from "@/components/StorageNotice";
 import { SectionHeading } from "@/components/SectionHeading";
+import { uniqueCodes } from "@/lib/codes";
+import { formatDay } from "@/lib/dates";
 import { setFlash } from "@/lib/flash";
-import { createId, SECTIONS, updateData, useStorage, type Item, type Section, type Trip } from "@/lib/storage";
-import { groupBySection, isAllPacked, shouldAskNewTrip, untickAll, withItems } from "@/lib/trips";
+import { prefersReducedMotion } from "@/lib/motion";
+import {
+  addItem,
+  answerNewTrip,
+  clearTicks,
+  createId,
+  deleteTrip,
+  removeItem,
+  renameTrip,
+  restoreItem,
+  setDestination,
+  setPacked,
+  useStorage,
+  type SaveResult,
+} from "@/lib/storage";
+import {
+  groupBySection,
+  isAllPacked,
+  SECTIONS,
+  shouldAskNewTrip,
+  tripTitleTransition,
+  type Destination,
+  type Item,
+  type Section,
+} from "@/lib/trips";
 import { useNow } from "@/lib/useNow";
+import { placeLabel } from "@/lib/weather";
 import { AddItemForm } from "./AddItemForm";
+import { useForecast } from "./Forecast";
 import { BACK_TO_MY_TRIPS, ListLoading } from "./ListLoading";
 import { ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "./ItemRow";
 import { ProgressBar } from "./ProgressBar";
 import { TripActions } from "./TripActions";
+import { Weather } from "./Weather";
+import { WeatherSummary } from "./WeatherSummary";
 
 const COUNT_ID = "packed-count";
 const UNDO_BAR_ID = "undo-bar";
 // How long Undo stays after you move away from it.
 const UNDO_MS = 3000;
+// How long the bar's plane takes to leave the runway once the last item is ticked.
+const TAKEOFF_MS = 200;
+// A change on screen that didn't save, said in the bar. Short, so it fits on one line.
+const NOT_SAVED_CHANGE = "Not saved. Check your connection";
 
 // When Undo times out while focused, focus moves to the next item on screen
 // (or the previous one, or the Add item field), so it's never lost.
@@ -42,14 +77,16 @@ export function PackingList() {
   const router = useRouter();
   const storage = useStorage();
   const now = useNow();
-  // Set while leaving a just-deleted trip, so the page doesn't flash "not found".
+  // Set while deleting a trip and leaving it, so the page doesn't flash "not found".
   const [deletedName, setDeletedName] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // The latest change, shown in the progress bar and read out politely. After a
   // removal it carries what's needed to undo it, until the next change.
-  const [feedback, setFeedback] = useState<{ text: string | null; undo?: { item: Item; index: number } } | null>(
-    null,
-  );
+  const [feedback, setFeedback] = useState<{
+    text: string | null;
+    undo?: { item: Item; index: number };
+    failed?: boolean;
+  } | null>(null);
   const setAnnouncement = (text: string) => setFeedback({ text });
 
   // Undo disappears UNDO_MS after a removal, counting again from when the pointer
@@ -73,15 +110,18 @@ export function PackingList() {
     return () => clearTimeout(timer);
   }, [pendingId, undoHeld]);
   // The row just added or restored, so it can be highlighted where it lands.
-  const [arrivedId, setArrivedId] = useState<string | null>(null);
+  // Added rows grow in; restored ones fade back in where they were.
+  const [landed, setLanded] = useState<{ id: string; how: "added" | "restored" } | null>(null);
   // The item the person just ticked, so only it plays the tick animation.
   const [justPackedId, setJustPackedId] = useState<string | null>(null);
+  // Ticking the last item: the bar's plane takes off, then All packed fades in.
+  const [takeoff, setTakeoff] = useState<"flying" | "landed" | null>(null);
 
-  const trip = storage.status === "ready" ? storage.data?.trips.find((t) => t.id === id) : undefined;
+  const trip = storage.status === "ready" ? storage.trips.find((t) => t.id === id) : undefined;
+  const forecast = useForecast(trip?.destination ?? null);
 
   // The tab title names the list too, so the person knows where they are.
-  const tabTitle =
-    trip?.name ?? (storage.status === "ready" && storage.problem !== "newer" ? "Trip not found" : null);
+  const tabTitle = trip?.name ?? deletedName ?? (storage.status === "ready" ? "Trip not found" : null);
   useEffect(() => {
     if (tabTitle) document.title = `${tabTitle} · Pack Again`;
   }, [tabTitle]);
@@ -103,24 +143,23 @@ export function PackingList() {
 
   if (storage.status === "loading") return <ListLoading />;
 
-  if (deletedName) {
+  if (deletedName && !trip) {
     return <Page title={deletedName} back={BACK_TO_MY_TRIPS}>{null}</Page>;
   }
 
-  // Saved by a newer version: nothing here can be shown or changed safely.
-  if (storage.problem === "newer") {
+  if (storage.status === "failed") {
     return (
       <Page title="Packing list" back={BACK_TO_MY_TRIPS}>
-        <StorageNotice problem="newer" />
+        <LoadFailed />
       </Page>
     );
   }
 
-  // Unknown id: an old bookmark, a deleted list, or nothing saved yet.
-  if (!storage.data || !trip) {
+  // Unknown id: an old bookmark, a deleted list, or someone else's (row-level
+  // security never returns it).
+  if (!trip) {
     return (
       <Page title="Trip not found" back={BACK_TO_MY_TRIPS}>
-        <StorageNotice problem={storage.problem} />
         <Card>
           <p>This trip doesn’t exist anymore.</p>
         </Card>
@@ -129,100 +168,122 @@ export function PackingList() {
   }
 
   const tripId = trip.id;
-  // Every change is saved straight away, applied to the latest saved items, so
-  // quick successive changes or another open tab never get overwritten.
-  type TripChanges = Partial<Pick<Trip, "promptDismissedAt" | "ticksClearedAt">>;
-  const change = (update: (items: Item[]) => Item[], changes: TripChanges = {}) =>
-    updateData((data) => {
-      const latest = data.trips.find((t) => t.id === tripId);
-      return latest ? withItems(data, tripId, update(latest.items), changes) : data;
+  // Ticks, removals and the like show straight away and save in the background. One
+  // that doesn't save comes off the screen again and the bar says so; if focus was on
+  // something that went with it (an Undo, a restored row), it moves to the count.
+  const checkSaved = (ok: boolean) => {
+    if (ok) return;
+    setFeedback({ text: NOT_SAVED_CHANGE, failed: true });
+    requestAnimationFrame(() => {
+      if (document.activeElement === document.body) document.getElementById(COUNT_ID)?.focus();
     });
+  };
   const toggle = (id: string) => {
     const wasPacked = trip.items.find((item) => item.id === id)?.packed;
-    change((items) => items.map((item) => (item.id === id ? { ...item, packed: !item.packed } : item)));
+    const packsLast = !wasPacked && trip.items.every((item) => item.id === id || item.packed);
+    setPacked(tripId, id, !wasPacked).then(checkSaved);
     setJustPackedId(wasPacked ? null : id);
     setFeedback(null);
-    setArrivedId(null);
+    setLanded(null);
+    // Only the person's own last tick takes off; reduced motion goes straight to All packed.
+    if (packsLast && !prefersReducedMotion()) {
+      setTakeoff("flying");
+      setTimeout(() => setTakeoff((current) => (current === "flying" ? "landed" : current)), TAKEOFF_MS);
+    } else {
+      setTakeoff(null);
+    }
   };
   const allPacked = isAllPacked(trip.items);
-  const add = (itemName: string, section: Section) => {
+  // Saved before it shows, so the form keeps what was typed if it fails.
+  const add = async (itemName: string, section: Section): Promise<SaveResult> => {
     // Added after a full pack ("Forgot something?"): saved as packed and New, so the
     // list stays All packed and the item stands out next trip.
+    const forgot = isAllPacked(trip.items);
     const id = createId();
-    change((items) => {
-      const forgot = isAllPacked(items);
-      return [...items, { id, name: itemName, section, packed: forgot, isNew: forgot }];
-    });
-    setArrivedId(id);
+    // Set first, so the row grows in from the moment it appears.
+    setLanded({ id, how: "added" });
     setJustPackedId(null);
+    const result = await addItem(tripId, { id, name: itemName, section, packed: forgot, isNew: forgot });
     // Visible too: the new row may be far down the page.
-    setAnnouncement(`Added ${itemName} to ${SECTIONS.find((s) => s.value === section)?.label ?? "Other"}`);
+    if (result === "saved") {
+      setAnnouncement(`Added ${itemName} to ${SECTIONS.find((s) => s.value === section)?.label ?? "Other"}`);
+    }
+    return result;
   };
   // A placeholder row with Undo takes the item's place (and focus) for a few seconds.
   const remove = (removed: Item) => {
-    let index = trip.items.indexOf(removed);
-    change((items) => {
-      index = items.findIndex((item) => item.id === removed.id);
-      return items.filter((item) => item.id !== removed.id);
-    });
+    const index = trip.items.findIndex((item) => item.id === removed.id);
+    removeItem(tripId, removed.id).then(checkSaved);
     setFeedback({ text: `Removed ${removed.name}`, undo: { item: removed, index } });
-    setArrivedId(null);
+    setLanded(null);
     setJustPackedId(null);
     requestAnimationFrame(() => document.getElementById(UNDO_ROW_ID)?.focus());
   };
   // Puts the item back where it was and moves focus to it.
   const undoRemove = ({ item, index }: { item: Item; index: number }) => {
-    change((items) =>
-      items.some((i) => i.id === item.id) ? items : [...items.slice(0, index), item, ...items.slice(index)],
-    );
+    restoreItem(tripId, item, index).then(checkSaved);
     setAnnouncement(`Restored ${item.name}`);
-    setArrivedId(item.id);
+    setLanded({ id: item.id, how: "restored" });
     requestAnimationFrame(() => document.getElementById(`item-${item.id}`)?.focus());
   };
   const focusCount = () => requestAnimationFrame(() => document.getElementById(COUNT_ID)?.focus());
-  const clearTicks = () => {
-    change(untickAll, { ticksClearedAt: new Date().toISOString() });
+  const clear = () => {
+    clearTicks(tripId).then(checkSaved);
     setAnnouncement("Ticks cleared");
     focusCount();
   };
   // Both answers to "Packing for a new trip?" record the answer, so it isn't asked again
   // until the next full pack.
-  const answerNewTrip = (clear: boolean) => {
-    const now = new Date().toISOString();
-    if (clear) change(untickAll, { promptDismissedAt: now, ticksClearedAt: now });
-    else change((items) => items, { promptDismissedAt: now });
-    if (clear) setAnnouncement("Ticks cleared");
+  const answer = (clearAll: boolean) => {
+    answerNewTrip(tripId, clearAll).then(checkSaved);
+    if (clearAll) setAnnouncement("Ticks cleared");
     focusCount();
   };
-  const rename = (name: string) => {
-    const updatedAt = new Date().toISOString();
-    updateData((data) => ({
-      ...data,
-      trips: data.trips.map((t) => (t.id === tripId ? { ...t, name, updatedAt } : t)),
-    }));
-    setAnnouncement(`Renamed to ${name}`);
+  const saveDestination = async (destination: Destination | null) => {
+    const saved = await setDestination(tripId, destination);
+    if (saved) setAnnouncement(destination ? `Destination set to ${placeLabel(destination)}` : "Destination removed");
+    return saved;
   };
-  // Back to My trips, which says what was deleted and puts focus on that message.
-  const deleteTrip = () => {
-    setDeletedName(trip.name);
-    setFlash(`Deleted ${trip.name}`);
-    updateData((data) => ({ ...data, trips: data.trips.filter((t) => t.id !== tripId) }));
+  const rename = async (name: string) => {
+    const result = await renameTrip(tripId, name);
+    if (result === "saved") setAnnouncement(`Renamed to ${name}`);
+    return result;
+  };
+  // Once deleted: back to My trips, which says what was deleted and puts focus on that message.
+  const deleteAndLeave = async () => {
+    const { name } = trip;
+    setDeletedName(name);
+    if (!(await deleteTrip(tripId))) {
+      setDeletedName(null);
+      return false;
+    }
+    setFlash(`Deleted ${name}`);
     router.replace("/");
+    return true;
   };
   const packed = trip.items.filter((item) => item.packed).length;
-  // The removed item stays on screen as a placeholder, in its old position.
+  // The removed item stays on screen as a placeholder, in its old position (unless
+  // the removal didn't save and it's back).
   const pending = feedback?.undo;
-  const rows = pending
-    ? [...trip.items.slice(0, pending.index), pending.item, ...trip.items.slice(pending.index)]
-    : trip.items;
+  const rows =
+    pending && !trip.items.some((item) => item.id === pending.item.id)
+      ? [...trip.items.slice(0, pending.index), pending.item, ...trip.items.slice(pending.index)]
+      : trip.items;
 
   return (
-    <Page title={trip.name} back={BACK_TO_MY_TRIPS}>
+    // Codes come from all trips in storage order, as on My trips, so they match the card.
+    <Page
+      title={trip.name}
+      back={BACK_TO_MY_TRIPS}
+      code={uniqueCodes(storage.trips).get(trip.id)}
+      titleTransition={tripTitleTransition(trip.id)}
+    >
       <ProgressBar
         packed={packed}
         total={trip.items.length}
         countId={COUNT_ID}
         allPacked={allPacked}
+        takeoff={takeoff}
         onForgot={() => {
           // Centered, so the sticky bar doesn't cover the field.
           inputRef.current?.scrollIntoView({ block: "center" });
@@ -231,13 +292,18 @@ export function PackingList() {
         message={
           feedback?.text && (
             <>
-              <p>{feedback.text}</p>
+              {/* One line, so the bar keeps its height; the full text is still read out. */}
+              <p className="flex min-w-0 items-center gap-1.5">
+                {feedback.failed && <ErrorIcon className="" />}
+                <span className="truncate">{feedback.text}</span>
+              </p>
               {feedback.undo && (
                 <Button
                   id={UNDO_BAR_ID}
                   {...undoHoldProps(holdUndo)}
                   aria-label={`Undo removing ${feedback.undo.item.name}`}
                   onClick={() => feedback.undo && undoRemove(feedback.undo)}
+                  className="shrink-0"
                 >
                   Undo
                 </Button>
@@ -246,21 +312,26 @@ export function PackingList() {
           )
         }
       />
-      <StorageNotice problem={storage.problem} />
 
       {/* In the page, not a modal, and it never takes focus on load. */}
-      {now !== null && shouldAskNewTrip(trip, now) && (
+      {now !== null && trip.lastPackedAt && shouldAskNewTrip(trip, now) && (
         <section role="region" aria-labelledby="new-trip-heading">
           <Card className="flex flex-col gap-4">
-            <SectionHeading id="new-trip-heading">
-              Packing for a new trip?
-            </SectionHeading>
+            <div className="flex flex-col gap-1">
+              <SectionHeading id="new-trip-heading">Packing for a new trip?</SectionHeading>
+              {/* Why it's asking. Only after mount, so the date can use the person's time zone. */}
+              <p className="text-muted">Last packed {formatDay(trip.lastPackedAt)}.</p>
+            </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button onClick={() => answerNewTrip(true)}>Clear all ticks</Button>
-              <Button onClick={() => answerNewTrip(false)}>Keep them</Button>
+              <Button onClick={() => answer(true)}>Clear all ticks</Button>
+              <Button onClick={() => answer(false)}>Keep them</Button>
             </div>
           </Card>
         </section>
+      )}
+
+      {trip.destination && forecast && (
+        <WeatherSummary destination={trip.destination} forecast={forecast} items={trip.items} />
       )}
 
       <AddItemForm
@@ -273,9 +344,9 @@ export function PackingList() {
       />
 
       {trip.items.length === 0 && !pending && (
-        <Card>
+        <EmptyState>
           <p>Nothing here yet. Add your first item.</p>
-        </Card>
+        </EmptyState>
       )}
 
       {groupBySection(rows).map((group) => (
@@ -297,7 +368,7 @@ export function PackingList() {
                   <ItemRow
                     key={item.id}
                     item={item}
-                    arrived={item.id === arrivedId}
+                    arrived={landed?.id === item.id ? landed.how : null}
                     justPacked={item.id === justPackedId}
                     onToggle={() => toggle(item.id)}
                     onRemove={() => remove(item)}
@@ -309,13 +380,16 @@ export function PackingList() {
         </section>
       ))}
 
+      {/* After the list, so the list comes first and nothing loading here moves it. */}
+      <Weather trip={trip} forecast={forecast} onSetDestination={saveDestination} onAdd={add} />
+
       <TripActions
         trip={trip}
-        otherTrips={storage.data.trips.filter((t) => t.id !== tripId)}
+        otherTrips={storage.trips.filter((t) => t.id !== tripId)}
         packed={packed}
-        onClearTicks={clearTicks}
+        onClearTicks={clear}
         onRename={rename}
-        onDelete={deleteTrip}
+        onDelete={deleteAndLeave}
       />
     </Page>
   );

@@ -12,7 +12,7 @@ export default function ErrorPage({ retry }: { error: unknown; retry: () => void
       {/* Error pages can't export metadata; React puts this title in the head. */}
       <title>Something went wrong · Pack Again</title>
       <Card className="flex flex-col gap-4">
-        <p>This page hit a problem. Your trips are still saved in this browser.</p>
+        <p>This page hit a problem. Your trips are still saved.</p>
         <div>
           <Button onClick={() => retry()}>Try again</Button>
         </div>

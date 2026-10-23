@@ -1,14 +1,15 @@
-import type { FocusEvent } from "react";
+import { useEffect, useRef, type FocusEvent } from "react";
 import { Button } from "@/components/Button";
 import { NewBadge } from "@/components/NewBadge";
-import type { Item } from "@/lib/storage";
+import { prefersReducedMotion } from "@/lib/motion";
+import type { Item } from "@/lib/trips";
 
 type ItemRowProps = {
   item: Item;
   onToggle: () => void;
   onRemove: () => void;
-  // Just added or restored: plays the arrive highlight once.
-  arrived?: boolean;
+  // Just added or restored: plays its entrance and the arrive highlight once.
+  arrived?: "added" | "restored" | null;
   // Just ticked by the person: the check and the strike-through draw in once.
   justPacked?: boolean;
 };
@@ -20,12 +21,35 @@ const strike =
   "bg-[linear-gradient(currentColor,currentColor)] bg-no-repeat bg-[length:100%_1.5px] bg-[position:0_58%] [box-decoration-break:clone] forced-colors:bg-none forced-colors:line-through";
 
 // The whole row is the checkbox's label, so the hit area is at least 44px high.
-export function ItemRow({ item, onToggle, onRemove, arrived = false, justPacked = false }: ItemRowProps) {
+// Hovering the row, or keyboard focus anywhere in it, tints it edge to edge; the
+// end rows round their corners to fit the card.
+export function ItemRow({ item, onToggle, onRemove, arrived = null, justPacked = false }: ItemRowProps) {
   const draw = justPacked ? "motion-safe:animate-draw" : "";
+  const row = useRef<HTMLLIElement>(null);
+  // An added row grows to its height (rows below slide down instead of jumping); a
+  // restored one fades back into the space its Removed row kept. Both 150 to 200ms.
+  useEffect(() => {
+    const li = row.current;
+    if (!li || !arrived || prefersReducedMotion()) return;
+    if (arrived === "restored") {
+      li.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "ease-out" });
+      return;
+    }
+    const height = `${li.offsetHeight}px`;
+    li.style.overflow = "hidden";
+    const grow = li.animate([{ height: "0px", opacity: 0 }, { height, opacity: 1 }], { duration: 200, easing: "ease-out" });
+    grow.onfinish = grow.oncancel = () => {
+      li.style.overflow = "";
+    };
+  }, [arrived]);
   return (
-    <li className={`flex items-center gap-2 px-2 ${arrived ? "motion-safe:animate-arrive" : ""}`}>
-      <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded px-2 py-2 hover:bg-canvas">
-        <span className="relative flex size-6 shrink-0">
+    <li
+      ref={row}
+      className={`flex items-center gap-2 px-2 first:rounded-t-[3px] last:rounded-b-[3px] hover:bg-canvas has-focus-visible:bg-canvas ${arrived ? "motion-safe:animate-arrive" : ""}`}
+    >
+      <label className="group/row flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 px-2 py-2">
+        {/* Pressing the row (or Space on the box) presses the box in a little. */}
+        <span className="relative flex size-6 shrink-0 transition-transform duration-150 ease-out motion-safe:group-active/row:scale-90 motion-safe:has-active:scale-90">
           <input
             id={`item-${item.id}`}
             type="checkbox"
@@ -56,10 +80,11 @@ export function ItemRow({ item, onToggle, onRemove, arrived = false, justPacked 
           </span>
           {item.packed && <span className="sr-only"> Packed</span>}
         </span>
-        {item.isNew && <NewBadge />}
+        {/* Added after All packed: the badge stamps in as the row lands. */}
+        {item.isNew && <NewBadge stamp={arrived === "added"} />}
       </label>
       {/* Always visible, never only on hover. Removing is immediate. */}
-      <Button variant="quiet" aria-label={`Remove ${item.name}`} onClick={onRemove} className="shrink-0">
+      <Button variant="subtle" aria-label={`Remove ${item.name}`} onClick={onRemove} className="shrink-0">
         Remove
       </Button>
     </li>
@@ -82,13 +107,17 @@ export function undoHoldProps(onHold: UndoHold) {
 }
 
 // Takes the removed item's place for a few seconds, so Undo is right where the
-// item was, for pointer and keyboard alike.
+// item was, for pointer and keyboard alike. Same height as an item row, so the
+// rows below don't move.
 export function RemovedRow({ name, onUndo, onHold }: { name: string; onUndo: () => void; onHold: UndoHold }) {
   return (
-    <li className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1 text-muted" {...undoHoldProps(onHold)}>
+    <li
+      className="flex min-h-11 flex-wrap items-center gap-x-3 px-4 text-muted motion-safe:animate-[fade-in_150ms_ease-out]"
+      {...undoHoldProps(onHold)}
+    >
       <span className="min-w-0 wrap-anywhere">Removed {name}</span>
       <span aria-hidden="true">·</span>
-      <Button id={UNDO_ROW_ID} aria-label={`Undo removing ${name}`} onClick={onUndo}>
+      <Button id={UNDO_ROW_ID} variant="quiet" aria-label={`Undo removing ${name}`} onClick={onUndo}>
         Undo
       </Button>
     </li>
