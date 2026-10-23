@@ -6,7 +6,52 @@ The "Ask Your Agent" prompt from each step of Assignment 4, and the answer, in s
 
 > "Walk me through the free tier limits for each service my app uses, and how to set usage limits and spending alerts for each one."
 
-*To be written at the end of step 0.*
+Researched 22 Oct 2026 from each service's official pages. A few Clerk facts come from search excerpts of its pricing and docs pages, which couldn't be fetched in full; they are marked *(excerpt)*. Anything that couldn't be confirmed says so.
+
+**In short:** none of these needs a payment method for what Pack Again uses, and none can charge you on its free plan. The risk is being *stopped*, not billed: Vercel pauses the site, Supabase pauses the project after a week without use, and Clerk and Open-Meteo refuse requests. Only GitHub has real budget alerts; elsewhere you watch a usage page.
+
+### Clerk (free plan, development keys)
+- **Users:** 50,000 monthly retained users on the free plan *(excerpt)*. A development instance is capped at 100 users *(excerpt)*, plenty for classmates.
+- **Messages:** development instances send at most 100 emails and 20 SMS a month. Messages to Clerk's test addresses don't count, so the Playwright test should use them.
+- **Rate limits:** the Backend API allows 100 requests per 10 seconds in development. Sign-in and sign-up allow 5 per 10 seconds per IP. Over a limit you get HTTP 429 with `Retry-After`.
+- **Limits and alerts:** no spending cap or usage alert is documented (not confirmed). There's nothing to bill on the free plan, and no card is required *(excerpt)*.
+
+### Supabase (Free plan)
+- **Limits:** 500 MB of database, 5 GB of egress (plus 5 GB cached), 1 GB of file storage, and 2 active free projects. API requests are unlimited. Clerk users count against a separate allowance of 50,000 third-party monthly active users.
+- **Pausing:** a free project is paused after 7 days of low activity, with a warning email first. Resume it from Dashboard › your organization › the paused project › Resume project. How long a paused project can be restored is unclear: the docs say both 90 days and 1 year. Open the app every few days until grades are back.
+- **At the limit:** Free is never charged. You're notified, and sustained overuse gets the service restricted.
+- **Limits and alerts:** the Spend Cap (Organization › Billing › Cost Control) exists only on Pro. On Free, watch Organization › Usage. No usage alerts are documented.
+
+### Vercel (Hobby)
+- **Per month:** 1M function invocations, 4 hours of active CPU, 100 GB of Fast Data Transfer, 10 GB of Fast Origin Transfer, 1M CDN requests and 5,000 image transformations.
+- **Builds:** 45-minute build limit and 100 deployments a day.
+- **Terms:** Hobby is for personal, non-commercial use only.
+- **At the limit:** you can't buy more. The project is paused and the site returns "503 DEPLOYMENT_PAUSED". One help article says you resume each project yourself, after cutting usage or upgrading.
+- **Limits and alerts:** Spend Management isn't available on Hobby. Vercel emails you as you near and pass a limit *(excerpt)*. Watch Dashboard › Usage.
+- **Payment method:** whether Hobby signup asks for a card is not confirmed. If it does, don't add one.
+
+### Open-Meteo (free, non-commercial)
+- **Limits:** under 600 calls a minute, 5,000 an hour, 10,000 a day and 300,000 a month (the monthly one isn't enforced yet). No uptime guarantee.
+- **At the limit:** rate-limited. Misuse can be blocked without notice.
+- **Shared IPs:** limits are counted per IP address and per application, and Vercel's server IPs are shared with many apps. This matters for step 6.
+- **Limits and alerts:** none. No key, no account and nothing to bill.
+
+### GitHub (free personal account)
+- **Actions:** not used by Pack Again. If they ever are: free on public repos, 2,000 minutes a month on private ones, and with no payment method, usage is blocked at the quota.
+- **Limits and alerts:** github.com/settings/billing › Budgets and alerts › New budget, with "Stop usage when budget limit is reached" and alerts at 75%, 90% and 100%. Whether a $0 budget is set by default couldn't be confirmed.
+
+### What to do as each account is created
+1. **Clerk (step 4):** don't add a card, and use test emails in tests.
+2. **Supabase (step 5):** stay on Free, no card, and bookmark Organization › Usage.
+3. **Vercel (step 8):** stay on Hobby, no card, and check Dashboard › Usage after the classmate test.
+4. **GitHub:** nothing needed while Actions are unused.
+
+Sources:
+- **Clerk:** [pricing](https://clerk.com/pricing), [environments](https://clerk.com/docs/guides/development/managing-environments), [test emails](https://clerk.com/docs/guides/development/testing/test-emails-and-phones), [system limits](https://clerk.com/docs/guides/how-clerk-works/system-limits)
+- **Supabase:** [pricing](https://supabase.com/pricing), [pausing](https://supabase.com/docs/guides/platform/free-project-pausing), [cost control](https://supabase.com/docs/guides/platform/cost-control), [third-party MAU](https://supabase.com/docs/guides/platform/manage-your-usage/monthly-active-users-third-party)
+- **Vercel:** [Hobby](https://vercel.com/docs/plans/hobby), [limits](https://vercel.com/docs/limits), [paused deployments](https://vercel.com/kb/guide/why-is-my-account-deployment-blocked)
+- **Open-Meteo:** [terms](https://open-meteo.com/en/terms)
+- **GitHub:** [Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions), [budgets](https://docs.github.com/en/billing/concepts/budgets-and-alerts)
 
 ## Step 1: The Open-Meteo response
 
