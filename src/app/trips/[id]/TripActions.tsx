@@ -164,7 +164,9 @@ function RenameForm({ current, otherTrips, onSave, onCancel }: RenameFormProps) 
     const result = await onSave(cleanName(name));
     saving.current = false;
     if (result === "saved") return;
-    setFailed(true);
+    // A name taken in another tab or on another device shows like any other duplicate.
+    if (result === "duplicate") setAttempted(true);
+    else setFailed(true);
     inputRef.current?.focus();
   }
 

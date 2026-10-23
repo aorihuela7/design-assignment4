@@ -59,7 +59,9 @@ export function NewTrip() {
       router.push(`/trips/${id}`);
       return;
     }
-    setFailed(true);
+    // A name taken in another tab or on another device shows like any other duplicate.
+    if (result === "duplicate") setAttempted(true);
+    else setFailed(true);
     inputRef.current?.focus();
   }
 

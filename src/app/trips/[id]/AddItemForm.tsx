@@ -51,8 +51,9 @@ export function AddItemForm({ items, onAdd, onError, inputRef, forgotMode }: Add
       setName((current) => (current === name ? "" : current));
       return;
     }
+    // A name taken in another tab or on another device shows like any other duplicate.
     setAttemptedIn(forgotMode);
-    setFailed(true);
+    setFailed(result === "failed");
     onError();
   }
 

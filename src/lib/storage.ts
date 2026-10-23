@@ -1,9 +1,9 @@
 import { useAuth } from "@clerk/nextjs";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { PostgrestError, type SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useSyncExternalStore } from "react";
 import { starterTrips } from "./starters";
 import { createSupabaseClient } from "./supabase";
-import { fullPack, untickAll, type Item, type Section, type Trip } from "./trips";
+import { fullPack, itemNamed, tripNameProblem, untickAll, type Item, type Section, type Trip } from "./trips";
 
 // Where trips are kept: Supabase, read and written from the browser as the signed-in
 // person, so row-level security only ever returns or changes their own rows. The page
@@ -15,8 +15,9 @@ export type StorageState =
   | { status: "failed" }
   | { status: "ready"; trips: Trip[] };
 
-// What a form gets back. "failed": the form says it wasn't saved and keeps what was typed.
-export type SaveResult = "saved" | "failed";
+// What a form gets back. "duplicate": the name is taken, by a trip or item the page
+// now shows. "failed": anything else. Either way the form keeps what was typed.
+export type SaveResult = "saved" | "duplicate" | "failed";
 
 // A new trip's or item's id, made here so the page can use it while the row saves.
 // (randomUUID needs https or localhost, where the app and Clerk run.)
@@ -169,6 +170,21 @@ async function succeeds(write: () => PromiseLike<unknown>) {
   }
 }
 
+// Why a form's save failed. A name that's taken (unique_violation) gets the form's own
+// message, once the trip or item holding it is on screen: it may have been made in
+// another tab or on another device, so the trips are loaded again first.
+async function whyNotSaved(owner: Session, error: unknown, isTaken: (trips: Trip[]) => boolean) {
+  console.error(error);
+  if (!(error instanceof PostgrestError && error.code === "23505")) return "failed";
+  try {
+    const trips = await fetchTrips(owner.db);
+    commit(owner, () => trips);
+  } catch {
+    return "failed";
+  }
+  return session === owner && isTaken(shownTrips()) ? "duplicate" : "failed";
+}
+
 // A change that has saved goes on screen, unless someone else signed in meanwhile.
 function commit(owner: Session, change: Change) {
   if (session !== owner) return;
@@ -251,19 +267,21 @@ export function createTrip(id: string, name: string) {
       commit(owner, (trips) => [...trips, trip]);
       return "saved";
     } catch (error) {
-      console.error(error);
-      return "failed";
+      return whyNotSaved(owner, error, (trips) => tripNameProblem(name, trips)?.kind === "duplicate");
     }
   }, "failed");
 }
 
 export function renameTrip(tripId: string, name: string) {
   return enqueue<SaveResult>(async (owner) => {
-    if (!(await succeeds(() => owner.db.from("trips").update({ name }).eq("id", tripId).throwOnError()))) {
-      return "failed";
+    try {
+      await owner.db.from("trips").update({ name }).eq("id", tripId).throwOnError();
+      commit(owner, onTrip(tripId, { name }));
+      return "saved";
+    } catch (error) {
+      const others = (trips: Trip[]) => trips.filter((trip) => trip.id !== tripId);
+      return whyNotSaved(owner, error, (trips) => tripNameProblem(name, others(trips))?.kind === "duplicate");
     }
-    commit(owner, onTrip(tripId, { name }));
-    return "saved";
   }, "failed");
 }
 
@@ -329,8 +347,8 @@ export function addItem(tripId: string, item: Omit<Item, "createdAt">) {
       commit(owner, onTrip(tripId, {}, (items) => [...items, added]));
       return "saved";
     } catch (error) {
-      console.error(error);
-      return "failed";
+      const items = (trips: Trip[]) => trips.find((trip) => trip.id === tripId)?.items ?? [];
+      return whyNotSaved(owner, error, (trips) => itemNamed(item.name, items(trips)) !== undefined);
     }
   }, "failed");
 }

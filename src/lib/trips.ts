@@ -70,12 +70,18 @@ export function cleanName(name: string) {
   return name.trim().replace(/\s+/g, " ");
 }
 
+// The item already called this, ignoring case and extra spaces.
+export function itemNamed(name: string, items: Item[]) {
+  const clean = cleanName(name).toLowerCase();
+  return items.find((item) => cleanName(item.name).toLowerCase() === clean);
+}
+
 // Returns what to do next, or null when the name can be added.
 export function itemNameError(name: string, items: Item[]): string | null {
   const clean = cleanName(name);
   if (clean === "") return "Enter an item name";
   if (clean.length > MAX_ITEM_NAME) return `Keep it under ${MAX_ITEM_NAME} characters`;
-  const existing = items.find((item) => cleanName(item.name).toLowerCase() === clean.toLowerCase());
+  const existing = itemNamed(clean, items);
   if (existing) {
     const section = SECTIONS.find((s) => s.value === existing.section)?.label ?? "Other";
     return `${existing.name} is already in ${section}. Tick it there or use another name`;
