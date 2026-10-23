@@ -65,31 +65,41 @@ export function AddItemForm({ items, onAdd, onError, inputRef, forgotMode }: Add
         <SectionHeading id={headingId} className={forgotMode ? "" : "sr-only"}>
           {forgotMode ? "Forgot something?" : "Add an item"}
         </SectionHeading>
-        <TextField
-          ref={inputRef}
-          label="Item name"
-          autoComplete="off"
-          value={name}
-          onChange={(event) => {
-            setName(event.target.value);
-            setFailed(false);
-          }}
-          // Leaving an empty field drops its error; nothing is left to fix.
-          onBlur={() => {
-            if (cleanName(name) === "") setAttemptedIn(null);
-          }}
-          error={error ?? undefined}
-        />
-        <SelectField
-          label="Section"
-          options={sectionOptions}
-          value={section}
-          onChange={(event) => setSection(event.target.value as Section)}
-        />
-        <div>
-          <Button type="submit" variant="primary">
-            {forgotMode ? "Add it for next time" : "Add item"}
-          </Button>
+        {/* Stacked on a phone; wider, name, section and the button share a row, the
+            button moving under them if the row runs out of room. */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:gap-x-3">
+          <div className="min-w-0 sm:min-w-48 sm:flex-1">
+            <TextField
+              ref={inputRef}
+              label="Item name"
+              autoComplete="off"
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value);
+                setFailed(false);
+              }}
+              // Leaving an empty field drops its error; nothing is left to fix.
+              onBlur={() => {
+                if (cleanName(name) === "") setAttemptedIn(null);
+              }}
+              error={error ?? undefined}
+            />
+          </div>
+          <div className="sm:w-40">
+            <SelectField
+              label="Section"
+              options={sectionOptions}
+              value={section}
+              onChange={(event) => setSection(event.target.value as Section)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {/* As tall as a field's label, so the button lines up with the fields. */}
+            <span aria-hidden="true" className="hidden h-4 sm:block" />
+            <Button type="submit" variant="primary">
+              {forgotMode ? "Add it for next time" : "Add item"}
+            </Button>
+          </div>
         </div>
       </form>
     </Card>
