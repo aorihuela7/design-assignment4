@@ -22,11 +22,11 @@
 | 3 Protect keys | Deny rule committed early; rest not started |
 | 4 Clerk sign-in | Code done (`502ee83`–`b96478e`); waiting for keys to check it running |
 | 5 Supabase + Clerk | App reads and writes Supabase (`7038317`–`24fc194`). Migrations applied to `fmitwpdmqajkvxczutwd` and RLS checked with two simulated users; waiting for your two-account check |
-| 6 Where the API call happens | Built in the browser (`3b2cd35`–`9cd9f4e`); waiting for your check of each state |
+| 6 Where the API call happens | Built in the browser (`3b2cd35`–`9cd9f4e`), plus a summary at the top (`ce3f9c3`, `08608d7`); Ask answers written; waiting for your check of each state |
 | 7 Playwright test, failing first | Not started |
 | 8 Review and deploy | Not started |
 
-**Next action:** you check step 5 with two accounts (neither sees the other's trips; different `user_id`s in the dashboard), then each weather state on a list page (`?weather=down` and `?weather=none` in development). Still to write: the Ask Your Agent answers for steps 5 and 6.
+**Next action:** you check step 5 with two accounts (neither sees the other's trips; different `user_id`s in the dashboard), then each weather state on a list page (`?weather=down` and `?weather=none` in development). The Ask Your Agent answers for steps 5 and 6 are in `docs/learning.md`, with the request diagram in `docs/request-flow.md`.
 
 ## Step 0: Context, branch and free tiers
 
@@ -179,3 +179,4 @@
 - 23 Oct, step 6: Open-Meteo is called from the browser, not our server (reasons in AGENTS.md › Weather).
 - 23 Oct, step 6: a forecast is kept for 30 minutes in the tab; place searches are cached by the browser for a day, as Open-Meteo asks.
 - 23 Oct, step 6: the weather section sits after the list, so the list comes first and nothing loading there moves it.
+- 23 Oct, step 6: a compact weather summary near the top of each list page with a destination (place, today's high and low, the first suggestion's reason, See weather), from the same forecast.
