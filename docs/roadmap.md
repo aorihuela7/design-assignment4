@@ -19,14 +19,14 @@
 | 0 Context and free tiers | In progress |
 | 1 Tool and API | In progress |
 | 2 Data model | Not started |
-| 3 Protect keys | Not started |
+| 3 Protect keys | Deny rule committed early; rest not started |
 | 4 Clerk sign-in | Not started |
 | 5 Supabase + Clerk | Not started |
 | 6 Where the API call happens | Not started |
 | 7 Playwright test, failing first | Not started |
 | 8 Review and deploy | Not started |
 
-**Next action:** finish step 0 (you run `/context`; I write the free-tier answer).
+**Next action:** you confirm that `/context` lists AGENTS.md; then step 0 is done and I wait for "continue".
 
 ## Step 0: Context, branch and free tiers
 
@@ -64,6 +64,7 @@
 - **Decisions:** the rule exactly as in the brief, or also deny writing and editing `.env` files (recommended: also deny).
 - **Ask Your Agent:** "Explain why this deny rule protects my keys. Then explain the difference between my publishable and secret keys, and where each one is allowed to go."
 - **Done when:** the rule is committed, my read attempt is blocked, and `.env.local` exists and is git-ignored.
+- **Progress:** at your request, the deny rule was committed early, exactly as in the brief (`009664b`), and `.clerk/` is now git-ignored (`f5b4dd4`). Still to do in step 3: the decision on also denying writes, the blocked read test, your `.env.local`, and the Ask answer.
 
 ## Step 4: Sign-in with Clerk
 
