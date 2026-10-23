@@ -68,6 +68,25 @@ npm run dev
 
 Then open http://localhost:3000. `npm run check:contrast` checks the color contrast of every pair the app uses.
 
+## Database
+
+The tables, row-level security policies and functions are the migrations in [`supabase/migrations/`](supabase/migrations/). They're applied in filename order, and each name starts with its version.
+
+Two of them are a pair from step 7:
+
+1. `20261023074853_step7_break_trips_select.sql` breaks row-level security on purpose, so the end-to-end test could be seen failing.
+2. `20261023212046_step7_restore_trips_select.sql` sorts after it and puts row-level security back.
+
+The restore uses `drop policy if exists`, so it never fails. On a fresh project both run and cancel out. On the current project the restore was run by hand in the SQL Editor, so it isn't in the migration history and does nothing when it's applied there.
+
+To check that a project ended up secure, run this in Supabase › SQL Editor:
+
+```sql
+select tablename, count(*) as policies from pg_policies where schemaname = 'public' group by tablename;
+```
+
+It should list 4 policies on `trips`, 4 on `items` and 2 on `profiles`. None should be named "Step 7: …".
+
 ## First-run check
 
 An AI agent used the live app twice as a first-time user, judging only from the screen: first visit, adding items (including an empty submit and a duplicate), ticking, removing, finishing a list, adding something forgotten, coming back in a new tab, at 1440px and 390px, and once with the keyboard only. It had built the app itself, so it wasn't a truly fresh user; treat this as a first pass before testing with people.
