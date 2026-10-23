@@ -80,9 +80,10 @@ function toPlace(value: unknown): Place[] {
 }
 
 // "Lisbon, Lisbon District, Portugal" for a place found; "Lisbon, Portugal" for a saved
-// destination, which keeps no region.
+// destination, which keeps no region. A part already said isn't repeated: "Singapore".
 export function placeLabel(place: Pick<Place, "name" | "country"> & { region?: string | null }) {
-  return [place.name, place.region, place.country].filter(Boolean).join(", ");
+  const parts = [place.name, place.region, place.country];
+  return parts.filter((part, i) => part && parts.indexOf(part) === i).join(", ");
 }
 
 // Up to 5 places, most likely first. The browser keeps each search for a day, as
