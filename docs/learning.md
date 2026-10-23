@@ -346,3 +346,27 @@ It also raised four lower-risk points, plus one you added. Here's what we did wi
 | The Supabase MCP server could write to the database | Not for the app, which never uses it. It is a risk for development: an agent, or instructions hidden in data it reads, could change the real database. | **Fixed** (`0e02276`): `read_only=true` in `.mcp.json`. New migrations go through the SQL Editor, or by switching it back on purpose. |
 | Playwright keeps a trace of a failed test, including the test users' cookies and tokens | Low. They belong to development-instance test accounts, stay on this computer, and `test-results/` is git-ignored. | **Not fixed:** the trace is the best way to see why a test failed, and these tokens open nothing real. |
 | Clerk's `createRouteMatcher` is deprecated, and a path-based check can leave protected server resources reachable | Not here: the pages hold no data on the server. Everything comes from Supabase under row-level security, so even a skipped page check would show nothing. | **Not fixed:** moving `auth.protect()` into every page is a bigger change for no gain today. Revisit before Clerk removes the function. |
+
+## Polish pass 2
+
+A second pass on design and features, on the `polish` branch, in batches. Screenshots of every screen before and after are in [`docs/polish-2/`](polish-2/).
+
+### Batch 1: the trip page in two zones
+
+**What changed.** The trip page now has two zones:
+
+- **The list:** the runway and count with Clear all ticks, a compact Add item form, then the sections.
+- **The weather:** the destination with Change and Remove, today's summary, the next 7 days, Pack for this weather and the credit to Open-Meteo. On wider screens it's a panel beside the list; on a phone, one block at the top that opens and closes.
+
+Rename and Delete moved into a Trip options menu beside the title.
+
+**Why.** The weather was split in two, a summary at the top and the forecast after the list, so it pushed the list down and was easy to miss. Rename and Delete sat under the list, though they're rare and Delete can't be undone.
+
+**What I learned.**
+
+- **Next.js keeps pages alive.** Next 16 keeps up to three visited pages in React's `<Activity>`, so going back shows a page as you left it, state and all (`node_modules/next/dist/docs/01-app/02-guides/preserving-ui-state.md`). Anything passing has to be reset when the page is hidden, in a `useLayoutEffect` cleanup: an open menu, the phone's open weather block, a Rename card. The same behavior causes two older bugs found while taking the screenshots. My trips doesn't say "Deleted …", and a card you've opened can't be opened again. Batch 2 fixes both.
+- **A sticky panel in a grid needs `align-items: start`.** Otherwise the panel stretches to the row's height and has nowhere to stick. It also needs a maximum height and its own scroll for windows shorter than it, with a little padding so focus rings aren't cut off at its edges.
+- **The forecast board sizes itself by its own width.** A container query, not the window's width: it's a 24rem panel on a laptop and full width on a phone.
+- **Page order is a trade-off.** The weather comes first in the page, so on a phone the closed block at the top is the first stop. On wider screens, Tab visits the panel before the list.
+- **A minifier surprise:** Tailwind's `[border-image:none]` came out as an empty `border-image:` in the built CSS, which the browser ignores. `border-image-source: none` works.
+- **The loading state is shaped like the page,** and measured: nothing moves when the trip arrives, at 390px or 1440px.
