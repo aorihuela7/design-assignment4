@@ -20,7 +20,7 @@ type WeatherProps = {
   onAdd: (name: string, section: Section) => Promise<SaveResult>;
 };
 
-const HEADING_ID = "weather-heading";
+export const WEATHER_HEADING_ID = "weather-heading";
 
 // Where the trip is going and its weather. Without a destination, an invitation to add
 // one; with one, its forecast and what to pack for it, then Change destination and
@@ -62,9 +62,10 @@ export function Weather({ trip, forecast, onSetDestination, onAdd }: WeatherProp
   };
 
   return (
-    <section aria-labelledby={HEADING_ID} className="flex flex-col gap-2">
-      {/* tabIndex -1: focus can wait here; no ring, since it isn't a control. */}
-      <SectionHeading id={HEADING_ID} ref={heading} tabIndex={-1} className="outline-none">
+    <section aria-labelledby={WEATHER_HEADING_ID} className="flex flex-col gap-2">
+      {/* tabIndex -1: focus can wait here; no ring, since it isn't a control. Scrolled to,
+          it stops below the sticky packing bar. */}
+      <SectionHeading id={WEATHER_HEADING_ID} ref={heading} tabIndex={-1} className="scroll-mt-24 outline-none">
         {destination ? `Weather in ${placeLabel(destination)}` : "Weather"}
       </SectionHeading>
 

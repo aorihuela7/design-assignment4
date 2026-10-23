@@ -210,6 +210,11 @@ export function describeWeather(code: number | null): { sky: Sky; label: string 
   return null;
 }
 
+// "21°C", or "–" when Open-Meteo sent no value.
+export function degrees(value: number | null) {
+  return value === null ? "–" : `${Math.round(value)}°C`;
+}
+
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 // "Saturday", for a forecast date. Read from the date itself, so it's the destination's

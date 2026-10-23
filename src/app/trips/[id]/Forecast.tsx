@@ -4,6 +4,7 @@ import { Notice } from "@/components/Notice";
 import { TextLink } from "@/components/TextLink";
 import {
   cachedForecast,
+  degrees,
   describeWeather,
   fetchForecast,
   forecastKey,
@@ -129,10 +130,6 @@ function Board({ hidden = false, children }: { hidden?: boolean; children: React
       </table>
     </div>
   );
-}
-
-function degrees(value: number | null) {
-  return value === null ? "–" : `${Math.round(value)}°C`;
 }
 
 function DayRow({ day }: { day: Day }) {

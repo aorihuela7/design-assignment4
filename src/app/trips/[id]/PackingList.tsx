@@ -47,6 +47,7 @@ import { ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "
 import { ProgressBar } from "./ProgressBar";
 import { TripActions } from "./TripActions";
 import { Weather } from "./Weather";
+import { WeatherSummary } from "./WeatherSummary";
 
 const COUNT_ID = "packed-count";
 const UNDO_BAR_ID = "undo-bar";
@@ -327,6 +328,10 @@ export function PackingList() {
             </div>
           </Card>
         </section>
+      )}
+
+      {trip.destination && forecast && (
+        <WeatherSummary destination={trip.destination} forecast={forecast} items={trip.items} />
       )}
 
       <AddItemForm
