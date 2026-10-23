@@ -239,3 +239,13 @@ What the other policies did, run the same way on 23 Oct with two pretend users (
 | B | `insert into trips (name, user_id) values ('Fake', '<A's id>')` | Error 42501 | Insert own trips (WITH CHECK) |
 | B | `delete from profiles` | Error 42501: permission denied | No grant to delete profiles |
 | Signed out | `select … from trips` | Error 42501: permission denied | `anon` has no grants |
+
+## Step 6: One request, from the click to the screen
+
+> "Draw a diagram of one request, from the click to the screen: the browser, my server, Clerk, Supabase, and the API."
+
+The diagram is in [request-flow.md](request-flow.md). It follows one click: choosing "Lisbon, Lisbon District, Portugal" in a list's destination search.
+
+- **Our Next.js server** served the page earlier and checked the session in `proxy.ts`. It plays no part in the click.
+- **The browser** gets a session token from Clerk and saves the destination in Supabase with it. Supabase checks the token, then row-level security checks that the trip is the person's.
+- **The forecast** comes straight from Open-Meteo to the browser, with no key, token or cookie. That's the step 6 decision: no key to hide, each person's own rate limit instead of Vercel's shared IPs, and no function calls on Hobby. The cost is that Open-Meteo sees each person's IP address.
