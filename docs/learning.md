@@ -154,3 +154,88 @@ Any invalid request returns HTTP 400 with `{"error": true, "reason": "…"}`. Fo
 - **Privacy:** server logs, which can include the coordinates requested, are kept for 90 days.
 
 Sources: [terms](https://open-meteo.com/en/terms), [licence](https://open-meteo.com/en/licence), [pricing](https://open-meteo.com/en/pricing).
+
+## Step 5: Row-level security, in plain words
+
+> "Explain each row-level security policy in plain words, then show me a query that one of them would block."
+
+Every request from the app carries the signed-in person's Clerk session token. Supabase checks it, and `auth.jwt()->>'sub'` is then their Clerk user id, like `user_2abc…`. Every policy compares that id with the row's `user_id`. The `(select …)` around it makes Postgres read the token once per query, not once per row.
+
+Two layers decide what a query may do:
+
+- **Grants** say which kinds of query a role may run at all. Signed-out visitors (`anon`) have none, so their queries fail before any policy is read. Signed-in people (`authenticated`) may select, insert, update and delete trips and items, but only select and insert profiles.
+- **Policies** then say which rows. With row-level security on, anything no policy allows is refused.
+
+A policy has up to two parts:
+
+- **USING** picks the existing rows a query can see or touch. The others are skipped silently: the query gets 0 rows, not an error.
+- **WITH CHECK** tests a row as it will be after an insert or update. If the row fails, the query is an error and nothing is written.
+
+### trips
+
+| Policy | In plain words |
+|---|---|
+| Select own trips | You see only the trips whose `user_id` is yours. |
+| Insert own trips | A new trip must be yours. The app never sends `user_id` (it defaults to your id), so this stops anyone sending someone else's. |
+| Update own trips | You can change only your own trips, and the result must still be yours, so a trip can't be given away. |
+| Delete own trips | You can delete only your own trips. Their items go with them. |
+
+### items
+
+| Policy | In plain words |
+|---|---|
+| Select own items | You see only your own items. |
+| Insert own items into own trips | A new item must be yours, and so must the trip it goes on. Knowing someone's trip id isn't enough to add to their list. |
+| Update own items in own trips | You can change only your own items, and only within your own trips, so an item can't be moved onto someone else's list. |
+| Delete own items | You can delete only your own items. |
+
+### profiles
+
+| Policy | In plain words |
+|---|---|
+| Select own profile | You see only your own profile, which records that your starter trips were made. |
+| Insert own profile | You can make only your own profile. |
+
+There's no update or delete policy, and no grant for them. A profile can't be changed or deleted, so the starter trips are never made twice. `add_starter_trips` runs as the caller (`security invoker`), so its inserts go through the same policies, and signed-out visitors can't call it.
+
+### A query a policy blocks
+
+Account B is signed in and knows the id of one of A's trips, from a shared link for example. In the browser's console, B tries to add an item to A's list:
+
+```js
+await supabase.from("items").insert({ trip_id: "<A's trip id>", name: "Sneaky", section: "other" });
+```
+
+Supabase refuses it with error `42501`: `new row violates row-level security policy for table "items"`. The WITH CHECK of "Insert own items into own trips" found that the trip isn't B's, so nothing was written.
+
+To see it yourself, run this in Supabase › SQL Editor. The editor runs as the database owner, so it pretends to be A and then B, and `rollback` keeps nothing:
+
+```sql
+begin;
+set local role authenticated;
+
+-- Signed in as A: a trip of A's.
+select set_config('request.jwt.claims', '{"sub":"user_a","role":"authenticated"}', true);
+insert into public.trips (name) values ('Only A');
+select set_config('demo.trip', (select id::text from public.trips where name = 'Only A'), true);
+
+-- Signed in as B: the same trip id, someone else's list.
+select set_config('request.jwt.claims', '{"sub":"user_b","role":"authenticated"}', true);
+insert into public.items (trip_id, name, section)
+values (current_setting('demo.trip')::uuid, 'Sneaky', 'other');
+-- ERROR: 42501: new row violates row-level security policy for table "items"
+
+rollback;
+```
+
+What the other policies did, run the same way on 23 Oct with two pretend users (all rolled back):
+
+| Signed in as | Query | Result | Because of |
+|---|---|---|---|
+| B | `select count(*) from trips` | 1, only B's trip | Select own trips |
+| B | `select … from trips where id = '<A's trip>'` | 0 rows | Select own trips |
+| B | `update trips set name = 'Hacked' where id = '<A's trip>'` | 0 rows changed, no error | Update own trips (USING) |
+| B | `delete from items where id = '<A's item>'` | 0 rows deleted, no error | Delete own items |
+| B | `insert into trips (name, user_id) values ('Fake', '<A's id>')` | Error 42501 | Insert own trips (WITH CHECK) |
+| B | `delete from profiles` | Error 42501: permission denied | No grant to delete profiles |
+| Signed out | `select … from trips` | Error 42501: permission denied | `anon` has no grants |
