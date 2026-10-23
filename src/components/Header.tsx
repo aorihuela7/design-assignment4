@@ -63,8 +63,9 @@ export function Header({
             )}
           </div>
         </div>
-        {/* The title, then anything beside it on the same line, wrapping under a long title. */}
-        <div className="mt-1 flex flex-wrap items-baseline gap-x-4">
+        {/* The title, then anything beside it: under it on a phone, so the band's height
+            doesn't depend on how long the title is; beside it on wider screens. */}
+        <div className="mt-1 flex flex-col items-start sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-4">
           {/* tabIndex -1: pages can move focus here on arrival; no ring, since it isn't a control.
               As wide as its text, so the morph from a card scales it evenly. */}
           <TitleTransition name={titleTransition}>
