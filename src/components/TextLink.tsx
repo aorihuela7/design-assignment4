@@ -16,7 +16,10 @@ export function TextLink({ inline: isInline = false, className = "", ...props }:
   return <Link className={`${base} ${isInline ? inline : block} ${className}`} {...props} />;
 }
 
-// Looks like a link, but it acts within the page (for example, moving focus).
-export function TextButton({ type = "button", className = "", ...props }: ComponentProps<"button">) {
-  return <button type={type} className={`${base} ${block} ${className}`} {...props} />;
+// Looks like a link, but it acts within the page (for example, moving focus). Inline,
+// it fits a short line and keeps the 44px target, as above.
+type TextButtonProps = ComponentProps<"button"> & { inline?: boolean };
+
+export function TextButton({ inline: isInline = false, type = "button", className = "", ...props }: TextButtonProps) {
+  return <button type={type} className={`${base} ${isInline ? `${inline} cursor-pointer` : block} ${className}`} {...props} />;
 }

@@ -10,6 +10,7 @@ import { PAGE_TITLE_ID } from "@/components/Header";
 import { LoadFailed } from "@/components/LoadFailed";
 import { Page } from "@/components/Page";
 import { SectionHeading } from "@/components/SectionHeading";
+import { TextButton } from "@/components/TextLink";
 import { uniqueCodes } from "@/lib/codes";
 import { formatDay } from "@/lib/dates";
 import { setFlash } from "@/lib/flash";
@@ -300,6 +301,7 @@ export function PackingList() {
               inputRef.current?.scrollIntoView({ block: "center" });
               inputRef.current?.focus({ preventScroll: true });
             }}
+            onClearTicks={clear}
             message={
               feedback?.text && (
                 <>
@@ -309,7 +311,8 @@ export function PackingList() {
                     <span className="truncate">{feedback.text}</span>
                   </p>
                   {feedback.undo && (
-                    <Button
+                    <TextButton
+                      inline
                       id={UNDO_BAR_ID}
                       {...undoHoldProps(holdUndo)}
                       aria-label={`Undo removing ${feedback.undo.item.name}`}
@@ -317,7 +320,7 @@ export function PackingList() {
                       className="shrink-0"
                     >
                       Undo
-                    </Button>
+                    </TextButton>
                   )}
                 </>
               )
@@ -390,8 +393,6 @@ export function PackingList() {
           <TripActions
             trip={trip}
             otherTrips={storage.trips.filter((t) => t.id !== tripId)}
-            packed={packed}
-            onClearTicks={clear}
             onRename={rename}
             onDelete={deleteAndLeave}
           />

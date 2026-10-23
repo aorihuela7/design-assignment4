@@ -11,17 +11,15 @@ import { cleanName, tripNameProblem, type Trip } from "@/lib/trips";
 type TripActionsProps = {
   trip: Trip;
   otherTrips: Trip[];
-  packed: number;
-  onClearTicks: () => void;
   onRename: (name: string) => Promise<SaveResult>;
   // Resolves to whether the trip was deleted; if it was, the page leaves.
   onDelete: () => Promise<boolean>;
 };
 
-// The bottom of the list: Clear all ticks, Rename trip and Delete trip. Rename and
-// Delete open in place (never a modal); Escape or Cancel closes them and focus
-// goes back to the button that opened them.
-export function TripActions({ trip, otherTrips, packed, onClearTicks, onRename, onDelete }: TripActionsProps) {
+// The bottom of the list: Rename trip and Delete trip. They open in place (never a
+// modal); Escape or Cancel closes them and focus goes back to the button that opened
+// them.
+export function TripActions({ trip, otherTrips, onRename, onDelete }: TripActionsProps) {
   const [mode, setMode] = useState<"idle" | "rename" | "delete">("idle");
   const renameButton = useRef<HTMLButtonElement>(null);
   const deleteButton = useRef<HTMLButtonElement>(null);
@@ -51,15 +49,9 @@ export function TripActions({ trip, otherTrips, packed, onClearTicks, onRename, 
     );
   }
 
-  // Clearing ticks is part of packing; renaming and deleting are rare, so they're
-  // quieter text actions under a divider.
+  // Renaming and deleting are rare, so they're quiet text actions under a divider.
   return (
     <div className="flex flex-col items-start gap-4">
-      {trip.items.length > 0 && (
-        <Button onClick={onClearTicks} disabled={packed === 0}>
-          Clear all ticks
-        </Button>
-      )}
       <div className="flex w-full flex-wrap gap-x-6 border-t border-line pt-2">
         <TextButton ref={renameButton} onClick={() => setMode("rename")}>
           Rename trip
