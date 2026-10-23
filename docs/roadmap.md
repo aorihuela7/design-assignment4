@@ -21,12 +21,12 @@
 | 2 Data model | Not started |
 | 3 Protect keys | Deny rule committed early; rest not started |
 | 4 Clerk sign-in | Code done (`502ee83`–`b96478e`); waiting for keys to check it running |
-| 5 Supabase + Clerk | Not started |
+| 5 Supabase + Clerk | App reads and writes Supabase (`7038317`–`24fc194`); waiting for your two-account check |
 | 6 Where the API call happens | Not started |
 | 7 Playwright test, failing first | Not started |
 | 8 Review and deploy | Not started |
 
-**Next action:** you run `npx -y clerk@latest link` and `npx -y clerk@latest env pull` (doctor found the project unlinked, with no `.env.local`); then I check sign-in and the signed-out redirects in a browser.
+**Next action:** you check, with two accounts in two browser windows, that neither sees the other's trips, and in the Supabase dashboard that their rows have different `user_id`s. Open question: the MCP's project (`fmitwpdmqajkvxczutwd`) shows no tables, so the migrations may be in another project.
 
 ## Step 0: Context, branch and free tiers
 
@@ -171,3 +171,7 @@
 - 22 Oct, step 0: the brief PDF stays out of the repo.
 - 22 Oct, step 4: signed out, `/` is a landing page with Sign in and Sign up; every other page redirects to sign-in.
 - 22 Oct, step 4: sign-in and sign-up are pages in the app (`/sign-in`, `/sign-up`) with Clerk's components in the Departures colors, not Clerk's hosted pages.
+- 23 Oct, step 5: data calls run in the browser, with the Supabase client's `accessToken` option set to Clerk's `getToken`. Never the secret key.
+- 23 Oct, step 5: trips saved in a browser before accounts are ignored; everyone starts fresh.
+- 23 Oct, step 5: a new account gets the starter trips once, from `add_starter_trips` on its first sign-in.
+- 23 Oct, step 5: the destination columns stay unused until step 6.
