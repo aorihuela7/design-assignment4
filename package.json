@@ -10,6 +10,7 @@
     "check:contrast": "node scripts/check-contrast.mjs"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.9.19",
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"
