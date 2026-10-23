@@ -27,15 +27,15 @@ const INFO = null; // decorative or disabled: reported, not required
 
 // [kind, foreground, background, minimum, where it's used]
 const pairs = [
-  ["Text", "ink", "canvas", TEXT, "Body text, section headings, BackLink, No lists yet"],
+  ["Text", "ink", "canvas", TEXT, "Body text, section headings, BackLink, No lists yet, today's high and low in the weather panel"],
   ["Text", "ink", "surface", TEXT, "Cards, item names, labels, field text, error text, links, NEW badge"],
   ["Text", "ink", "line", TEXT, "Secondary and quiet buttons, pressed"],
-  ["Text", "muted", "canvas", TEXT, "Intro line, loading text, BackLink pressed, Remove on a hovered row, Weather data by Open-Meteo.com"],
+  ["Text", "muted", "canvas", TEXT, "Intro line, loading text, BackLink pressed, Remove on a hovered row, Weather data by Open-Meteo.com, today's tip in the weather panel"],
   ["Text", "muted", "surface", TEXT, "Code label, Last packed, placeholder, packed (struck) items, Remove, 5 places found"],
   ["Text", "ink", "stub", TEXT, "Boarding pass stub: count, Open"],
   ["Text", "muted", "stub", TEXT, "Boarding pass stub: Last packed"],
-  ["Text", "amber", "board", TEXT, "Header: PACK AGAIN, Sign in and Sign up links; forecast board: days, weather, temperatures, rain"],
-  ["Text", "board", "amber", TEXT, "Header links, pressed"],
+  ["Text", "amber", "board", TEXT, "Header: PACK AGAIN, Sign in and Sign up links, Trip options; forecast board: days, weather, temperatures, rain"],
+  ["Text", "board", "amber", TEXT, "Header links and Trip options, pressed"],
   ["Text", "white", "accent", TEXT, "Primary button"],
   ["Text", "white", "accent-hover", TEXT, "Primary button, hover"],
   ["Text", "white", "accent-pressed", TEXT, "Primary button, pressed"],
@@ -45,7 +45,7 @@ const pairs = [
   ["Large", "amber", "board", LARGE, "Header h1 (page name)"],
   ["Large", "ink", "surface", LARGE, "List names on cards, form headings"],
   ["UI", "board", "canvas", UI, "Focus ring on the page"],
-  ["UI", "board", "surface", UI, "Focus ring on cards and fields"],
+  ["UI", "board", "surface", UI, "Focus ring on cards and fields, and in the Trip options menu"],
   ["UI", "amber", "board", UI, "Focus ring on the Departures band"],
   ["UI", "muted", "surface", UI, "Text field and select border"],
   ["UI", "ink", "surface", UI, "Invalid field border, checkbox border, secondary button border, error, notice and warning icons"],
