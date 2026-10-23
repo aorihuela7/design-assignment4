@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
@@ -46,7 +46,7 @@ import { useForecast } from "./Forecast";
 import { BACK_TO_MY_TRIPS, ListLoading } from "./ListLoading";
 import { ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "./ItemRow";
 import { ProgressBar } from "./ProgressBar";
-import { TripActions } from "./TripActions";
+import { DeleteConfirm, RenameForm, TripOptions } from "./TripActions";
 import { Weather } from "./Weather";
 
 const COUNT_ID = "packed-count";
@@ -116,6 +116,11 @@ export function PackingList() {
   const [justPackedId, setJustPackedId] = useState<string | null>(null);
   // Ticking the last item: the bar's plane takes off, then All packed fades in.
   const [takeoff, setTakeoff] = useState<"flying" | "landed" | null>(null);
+  // What Trip options opened: Rename and Delete show in place, above the list.
+  const [options, setOptions] = useState<"idle" | "rename" | "delete">("idle");
+  const optionsButton = useRef<HTMLButtonElement>(null);
+  // Closed again when Next keeps the page in the background, as on a fresh visit.
+  useLayoutEffect(() => () => setOptions("idle"), []);
 
   const trip = storage.status === "ready" ? storage.trips.find((t) => t.id === id) : undefined;
   const forecast = useForecast(trip?.destination ?? null);
@@ -244,6 +249,11 @@ export function PackingList() {
     if (saved) setAnnouncement(destination ? `Destination set to ${placeLabel(destination)}` : "Destination removed");
     return saved;
   };
+  // Rename and Delete close back to the button that opened them.
+  const closeOptions = () => {
+    setOptions("idle");
+    requestAnimationFrame(() => optionsButton.current?.focus());
+  };
   const rename = async (name: string) => {
     const result = await renameTrip(tripId, name);
     if (result === "saved") setAnnouncement(`Renamed to ${name}`);
@@ -278,7 +288,28 @@ export function PackingList() {
       wide
       code={uniqueCodes(storage.trips).get(trip.id)}
       titleTransition={tripTitleTransition(trip.id)}
+      titleAction={
+        <TripOptions
+          buttonRef={optionsButton}
+          onRename={() => setOptions("rename")}
+          onDelete={() => setOptions("delete")}
+        />
+      }
     >
+      {options === "rename" && (
+        <RenameForm
+          current={trip.name}
+          otherTrips={storage.trips.filter((t) => t.id !== tripId)}
+          onSave={async (name) => {
+            const result = name === trip.name ? "saved" : await rename(name);
+            if (result === "saved") closeOptions();
+            return result;
+          }}
+          onCancel={closeOptions}
+        />
+      )}
+      {options === "delete" && <DeleteConfirm trip={trip} onDelete={deleteAndLeave} onCancel={closeOptions} />}
+
       {/* Phones: the weather first, then the list. Wider: the list on the left and the
           weather beside it, staying in view while the list scrolls. The weather comes
           first in the page either way, so the reading order matches a phone's screen. */}
@@ -390,12 +421,6 @@ export function PackingList() {
             </section>
           ))}
 
-          <TripActions
-            trip={trip}
-            otherTrips={storage.trips.filter((t) => t.id !== tripId)}
-            onRename={rename}
-            onDelete={deleteAndLeave}
-          />
         </div>
       </div>
     </Page>

@@ -165,6 +165,10 @@
   [data-surface="board"] :focus-visible {
     outline-color: var(--color-amber);
   }
+
+  [data-surface="board"] [data-surface="light"] :focus-visible {
+    outline-color: var(--color-board);
+  }
 }
 
 /* The clerk layer comes after base, so Clerk's controls get the same ring again here. */

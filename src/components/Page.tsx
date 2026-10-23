@@ -16,6 +16,8 @@ type PageProps = {
   signedOut?: boolean;
   // A trip's page: wider, so its list and its weather can sit side by side.
   wide?: boolean;
+  // Shown on the band beside the title, like a trip's options menu.
+  titleAction?: ReactNode;
   children: ReactNode;
 };
 
@@ -27,6 +29,7 @@ export function Page({
   titleTransition,
   signedOut,
   wide = false,
+  titleAction,
   children,
 }: PageProps) {
   return (
@@ -40,6 +43,7 @@ export function Page({
         titleTransition={titleTransition}
         signedOut={signedOut}
         wide={wide}
+        titleAction={titleAction}
       />
       {/* Moving to another page fades the content out and the new content in. */}
       <ViewTransition enter="page-in" exit="page-out" default="none">

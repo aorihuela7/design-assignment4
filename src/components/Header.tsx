@@ -19,6 +19,8 @@ type HeaderProps = {
   signedOut?: boolean;
   // A trip's page is wider, for its list and its weather side by side.
   wide?: boolean;
+  // Beside the title, like a trip's options menu.
+  titleAction?: ReactNode;
 };
 
 // Amber caps on the band; the accent stays for each page's primary action.
@@ -33,6 +35,7 @@ export function Header({
   titleTransition,
   signedOut = false,
   wide = false,
+  titleAction,
 }: HeaderProps) {
   return (
     <header data-surface="board" className="bg-board text-amber">
@@ -60,24 +63,28 @@ export function Header({
             )}
           </div>
         </div>
-        {/* tabIndex -1: pages can move focus here on arrival; no ring, since it isn't a control.
-            As wide as its text, so the morph from a card scales it evenly. */}
-        <TitleTransition name={titleTransition}>
-          <h1
-            id={PAGE_TITLE_ID}
-            tabIndex={-1}
-            className="mt-1 w-fit font-display text-4xl font-semibold uppercase tracking-wide wrap-anywhere outline-none sm:text-5xl"
-          >
-            {titleLoading ? (
-              <>
-                <span className="sr-only">{title}</span>
-                <span aria-hidden="true" className="inline-block h-[0.7em] w-[6em] max-w-full rounded bg-white/10" />
-              </>
-            ) : (
-              title
-            )}
-          </h1>
-        </TitleTransition>
+        {/* The title, then anything beside it on the same line, wrapping under a long title. */}
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-4">
+          {/* tabIndex -1: pages can move focus here on arrival; no ring, since it isn't a control.
+              As wide as its text, so the morph from a card scales it evenly. */}
+          <TitleTransition name={titleTransition}>
+            <h1
+              id={PAGE_TITLE_ID}
+              tabIndex={-1}
+              className="w-fit font-display text-4xl font-semibold uppercase tracking-wide wrap-anywhere outline-none sm:text-5xl"
+            >
+              {titleLoading ? (
+                <>
+                  <span className="sr-only">{title}</span>
+                  <span aria-hidden="true" className="inline-block h-[0.7em] w-[6em] max-w-full rounded bg-white/10" />
+                </>
+              ) : (
+                title
+              )}
+            </h1>
+          </TitleTransition>
+          {titleAction}
+        </div>
       </div>
     </header>
   );

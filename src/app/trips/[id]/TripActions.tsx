@@ -1,4 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type RefObject,
+} from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorMessage, NOT_SAVED } from "@/components/ErrorMessage";
@@ -8,58 +17,80 @@ import { tripNameMessage } from "@/components/tripNameMessage";
 import type { SaveResult } from "@/lib/storage";
 import { cleanName, tripNameProblem, type Trip } from "@/lib/trips";
 
-type TripActionsProps = {
-  trip: Trip;
-  otherTrips: Trip[];
-  onRename: (name: string) => Promise<SaveResult>;
-  // Resolves to whether the trip was deleted; if it was, the page leaves.
-  onDelete: () => Promise<boolean>;
+type TripOptionsProps = {
+  // Where focus goes back to when the menu, or what it opened, closes.
+  buttonRef: RefObject<HTMLButtonElement | null>;
+  onRename: () => void;
+  onDelete: () => void;
 };
 
-// The bottom of the list: Rename trip and Delete trip. They open in place (never a
-// modal); Escape or Cancel closes them and focus goes back to the button that opened
-// them.
-export function TripActions({ trip, otherTrips, onRename, onDelete }: TripActionsProps) {
-  const [mode, setMode] = useState<"idle" | "rename" | "delete">("idle");
-  const renameButton = useRef<HTMLButtonElement>(null);
-  const deleteButton = useRef<HTMLButtonElement>(null);
+// "Trip options" beside the trip's title on the band: Rename trip and Delete trip, both
+// rare, so tucked away. A button that opens a short list of buttons (not a modal):
+// Escape closes it and puts focus back on the button; leaving it with Tab, or clicking
+// anywhere else, closes it too.
+export function TripOptions({ buttonRef, onRename, onDelete }: TripOptionsProps) {
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const box = useRef<HTMLDivElement>(null);
 
-  const close = () => {
-    const opener = mode === "rename" ? renameButton : deleteButton;
-    setMode("idle");
-    requestAnimationFrame(() => opener.current?.focus());
+  // A menu is a passing thing: closed again when Next keeps the page in the background.
+  useLayoutEffect(() => () => setOpen(false), []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!box.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  const choose = (action: () => void) => {
+    setOpen(false);
+    action();
   };
 
-  if (mode === "delete") {
-    return <DeleteConfirm trip={trip} onDelete={onDelete} onCancel={close} />;
-  }
-
-  if (mode === "rename") {
-    return (
-      <RenameForm
-        current={trip.name}
-        otherTrips={otherTrips}
-        onSave={async (name) => {
-          const result = name === trip.name ? "saved" : await onRename(name);
-          if (result === "saved") close();
-          return result;
-        }}
-        onCancel={close}
-      />
-    );
-  }
-
-  // Renaming and deleting are rare, so they're quiet text actions under a divider.
   return (
-    <div className="flex flex-col items-start gap-4">
-      <div className="flex w-full flex-wrap gap-x-6 border-t border-line pt-2">
-        <TextButton ref={renameButton} onClick={() => setMode("rename")}>
-          Rename trip
-        </TextButton>
-        <TextButton ref={deleteButton} onClick={() => setMode("delete")}>
-          Delete trip
-        </TextButton>
-      </div>
+    <div
+      ref={box}
+      className="relative"
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || !open) return;
+        setOpen(false);
+        buttonRef.current?.focus();
+      }}
+      onBlur={(event) => {
+        if (!box.current?.contains(event.relatedTarget as Node)) setOpen(false);
+      }}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen((isOpen) => !isOpen)}
+        className="-mx-1 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded px-1 font-mono text-xs uppercase tracking-widest text-amber underline underline-offset-4 hover:decoration-2 active:bg-amber active:text-board"
+      >
+        Trip options
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 16 16"
+          className={`size-3.5 transition-transform duration-150 ease-out motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      </button>
+      {open && (
+        // A light card on the band: data-surface gives its buttons the navy focus ring.
+        <div
+          id={menuId}
+          data-surface="light"
+          className="absolute top-full left-0 z-40 mt-1 flex w-52 flex-col rounded border border-ink bg-surface px-3 py-1 motion-safe:animate-reveal"
+        >
+          <TextButton onClick={() => choose(onRename)}>Rename trip</TextButton>
+          <TextButton onClick={() => choose(onDelete)}>Delete trip</TextButton>
+        </div>
+      )}
     </div>
   );
 }
@@ -68,7 +99,7 @@ export function TripActions({ trip, otherTrips, onRename, onDelete }: TripAction
 // reaches Delete trip, then Cancel.
 type DeleteConfirmProps = { trip: Trip; onDelete: () => Promise<boolean>; onCancel: () => void };
 
-function DeleteConfirm({ trip, onDelete, onCancel }: DeleteConfirmProps) {
+export function DeleteConfirm({ trip, onDelete, onCancel }: DeleteConfirmProps) {
   const items = trip.items.length;
   const question = useRef<HTMLParagraphElement>(null);
   const [failed, setFailed] = useState(false);
@@ -135,7 +166,7 @@ type RenameFormProps = {
   onCancel: () => void;
 };
 
-function RenameForm({ current, otherTrips, onSave, onCancel }: RenameFormProps) {
+export function RenameForm({ current, otherTrips, onSave, onCancel }: RenameFormProps) {
   const [name, setName] = useState(current);
   // Same rules as New trip: no errors before the first save, then they follow what's typed.
   const [attempted, setAttempted] = useState(false);
