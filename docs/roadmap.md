@@ -32,7 +32,7 @@
 
 - **I do:** update AGENTS.md (done: `057bfcf`, `b35baa3`). Check for a CLAUDE.md (none) and that `.gitignore` covers `.env*` (it does). Write this roadmap and `docs/learning.md`. Answer the free-tier prompt for Clerk, Supabase, Vercel, Open-Meteo and GitHub, including where to set usage limits and alerts.
 - **You do:** run `/context` and confirm AGENTS.md is loaded. Set limits and alerts as each account is created (steps 4, 5, 8).
-- **Decisions:** whether the brief PDF goes into `docs/` (recommended: no, it's course material).
+- **Decisions:** whether the brief PDF goes into `docs/`. **Decided: no**, it stays at `~/Downloads/assignment4.pdf`.
 - **Ask Your Agent:** "Walk me through the free tier limits for each service my app uses, and how to set usage limits and spending alerts for each one."
 - **Done when:** `/context` shows AGENTS.md, the roadmap is approved and committed, and the free-tier answer is in `docs/learning.md`.
 
@@ -167,3 +167,4 @@
 (Filled in as you decide: date, step, decision.)
 
 - 22 Oct, step 0: roadmap approved.
+- 22 Oct, step 0: the brief PDF stays out of the repo.
