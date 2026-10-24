@@ -10,7 +10,7 @@ import { TextField } from "@/components/Field";
 import { LoadFailed } from "@/components/LoadFailed";
 import { Page } from "@/components/Page";
 import { tripNameMessage } from "@/components/tripNameMessage";
-import { uniqueCodes } from "@/lib/codes";
+import { tripCodes } from "@/lib/codes";
 import { createId, createTrip, useStorage } from "@/lib/storage";
 import { cleanName, tripNameProblem, tripTitleTransition } from "@/lib/trips";
 
@@ -38,7 +38,7 @@ export function NewTrip() {
   // The code it will get: worked out with the trip added last, as it will be saved.
   const previewName = cleanName(name);
   const previewCode = previewName
-    ? (uniqueCodes([...trips, { id: PREVIEW_ID, name: previewName }]).get(PREVIEW_ID) ?? "")
+    ? (tripCodes([...trips, { id: PREVIEW_ID, name: previewName, destination: null }]).get(PREVIEW_ID) ?? "")
     : "";
 
   async function submit(event: FormEvent) {

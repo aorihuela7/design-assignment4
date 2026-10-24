@@ -11,7 +11,7 @@ import { TextLink } from "./TextLink";
 
 type BoardingPassCardProps = {
   name: string;
-  code: string; // from uniqueCodes(), so it's unique among the person's lists
+  code: string; // from tripCodes(): the destination's, or else one unique among the person's trips
   packed: number;
   total: number;
   lastPackedAt: string | null;

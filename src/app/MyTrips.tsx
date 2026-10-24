@@ -9,7 +9,7 @@ import { LoadFailed } from "@/components/LoadFailed";
 import { Notice } from "@/components/Notice";
 import { Page } from "@/components/Page";
 import { SectionHeading } from "@/components/SectionHeading";
-import { uniqueCodes } from "@/lib/codes";
+import { tripCodes } from "@/lib/codes";
 import { clearFlash, peekFlash } from "@/lib/flash";
 import { isUntouchedStarters } from "@/lib/starters";
 import { addStarterTripsBack, useStorage } from "@/lib/storage";
@@ -74,7 +74,7 @@ export function MyTrips() {
 
   const { trips } = storage;
   // Codes come from storage order, so they stay put when the sort changes.
-  const codes = uniqueCodes(trips);
+  const codes = tripCodes(trips);
   // One line under the title at most: welcome back wins over the starter line.
   const readyAgain = now === null ? 0 : welcomeBackCount(trips, now);
   const intro =

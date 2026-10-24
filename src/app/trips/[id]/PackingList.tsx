@@ -11,7 +11,7 @@ import { LoadFailed } from "@/components/LoadFailed";
 import { Page } from "@/components/Page";
 import { SectionHeading } from "@/components/SectionHeading";
 import { TextButton } from "@/components/TextLink";
-import { uniqueCodes } from "@/lib/codes";
+import { tripCodes } from "@/lib/codes";
 import { formatDay } from "@/lib/dates";
 import { setFlash } from "@/lib/flash";
 import { prefersReducedMotion } from "@/lib/motion";
@@ -286,7 +286,7 @@ export function PackingList() {
       title={trip.name}
       back={BACK_TO_MY_TRIPS}
       wide
-      code={uniqueCodes(storage.trips).get(trip.id)}
+      code={tripCodes(storage.trips).get(trip.id)}
       titleTransition={tripTitleTransition(trip.id)}
       titleAction={
         <TripOptions
