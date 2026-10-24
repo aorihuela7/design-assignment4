@@ -25,9 +25,9 @@
 | 6 Where the API call happens | Built in the browser (`3b2cd35`–`9cd9f4e`), plus a summary at the top (`ce3f9c3`, `08608d7`); Ask answers written; waiting for your check of each state |
 | 7 Playwright test, failing first | Done: seen passing, failing with RLS broken, then passing again (`36bbd39`, `b24cbea`) |
 | 8 Review and deploy | Done: `/security-review` findings handled, merged into `main` (PR #1) and live at https://design-assignment4.vercel.app |
-| Polish pass 2 | In progress on `polish` (below): batches 1 and 2 done |
+| Polish pass 2 | In progress on `polish` (below): batches 1 to 3 done |
 
-**Next action:** your answers to batch 3's three questions (the greeting, the forecast cache, two ideas of mine).
+**Next action:** your choice of batch 4's features, and how the packing bar should fit "All packed" on phones.
 
 ## Step 0: Context, branch and free tiers
 
@@ -160,8 +160,8 @@ Production on `main` stays as it is; the work happens on `polish`, pushed for a 
 |---|---|
 | 1 The trip page in two zones: the list, the weather, Trip options | Done |
 | 2 The destination code, and the takeoff bug | Done, with three more bugs of the same cause |
-| 3 A more delightful My trips | Next: three questions first (the greeting, the forecast cache, two ideas of mine) |
-| 4 Features | You choose which; any database change is shown to you before it runs |
+| 3 A more delightful My trips | Done, with the flip from my two ideas |
+| 4 Features | Next: you choose which; any database change is shown to you before it runs |
 | 5 Night flight dark theme | Optional, asked after batch 4 |
 
 After each batch: build, lint, the contrast check and the end-to-end test, then the after screenshots, a push and a summary with the preview link.
@@ -204,3 +204,6 @@ After each batch: build, lint, the contrast check and the end-to-end test, then 
 - 23 Oct, polish pass 2, batch 1: on a phone, the weather block starts closed every time.
 - 23 Oct, polish pass 2, batch 2: codes are worked out among all the trips, so setting or removing one trip's destination never changes another trip's code; a city with no letters to use falls back to the name's code.
 - 23 Oct, polish pass 2, batch 2: a page kept in the background starts fresh on every visit, as before: forms empty, no old messages, focus placed on arrival. Unsent text isn't kept between visits (production never kept it either).
+- 23 Oct, polish pass 2, batch 3: the greeting and one summary line replace the intro line; "Welcome back" and the starter trips' invitation become that summary.
+- 23 Oct, polish pass 2, batch 3: forecasts stay in the tab's memory for 30 minutes, as before; nothing about the weather is stored.
+- 23 Oct, polish pass 2, batch 3: of my two ideas, the code's flip like a departures board, not the barcode.

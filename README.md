@@ -127,6 +127,11 @@ On the `polish` branch, in batches, with [before and after screenshots](docs/pol
   - A trip opened again showed its last message, and focus didn't go to its name.
 
   Every visit now starts fresh, as it always did.
+- **A more delightful My trips.**
+  - **A greeting:** "Good evening, Alejandro." and one line on where the trips stand ("2 trips to pack, 1 packed."), by the person's own clock and their account's first name.
+  - **Where each trip goes, and its weather today there:** "MÁLAGA, SPAIN", and under the name an icon with the words and the high and low. It's the same forecast the trip page shows, so opening the trip asks Open-Meteo for nothing more. Trips with no destination invite "Add a destination for weather tips", which opens the trip ready to type one.
+  - **A status stamp** on each stub: NOT STARTED, BOARDING 40% or PACKED.
+  - **Motion:** the tickets come in one after another the first time they show, a card lifts 2px on hover or keyboard focus, a stamp presses on when its status changes, and a code flips like a departures board when the destination changes it. All of it 200ms or less per element, and none of it with reduced motion.
 
 ## History: assignment 3
 

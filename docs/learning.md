@@ -389,3 +389,19 @@ Rename and Delete moved into a Trip options menu beside the title.
 - **A message to say once needs a store.** "Deleted …" was read into My trips' state when the page was first made, and a kept page isn't made again. It's now read from a small store each time the page shows (`useSyncExternalStore`), and cleared once the page is hidden. In development React mounts everything twice, so the clear waits a moment, and the second mount cancels it.
 - **Resetting on hide is the general fix.** Next's guide resets passing state in a `useLayoutEffect` cleanup, which runs when the page is hidden. The card's takeoff, the trip page's message and Undo, its forms and its arrival focus all reset that way. Each page starts fresh, as it did before. Kept pages still make going back instant.
 - **Codes that don't move.** Name codes are worked out among all the trips, with or without destinations. Setting or removing one trip's destination never changes another trip's code.
+
+### Batch 3: a more delightful My trips
+
+**What changed.**
+
+- **A greeting:** the time of day and the first name from the person's account, then one line on where the trips stand. "Welcome back" and the starter trips' invitation fold into that line.
+- **Where each trip goes and its weather today,** on its card, or an invitation to add a destination.
+- **A status stamp:** NOT STARTED, BOARDING n% or PACKED.
+- **Motion:** the tickets' entrance, a lift on hover and focus, the stamp pressing on, and the code flipping when the destination changes.
+
+**What I learned.**
+
+- **One forecast, counted.** The cards use the trip page's forecast, kept in the tab for 30 minutes. A request already on its way is shared too, so two cards for one city make one call between them. Counted on the network: My trips asked twice, once for each destination, and opening both trips asked nothing more. With Open-Meteo blocked, both cards said "Weather unavailable" and still opened.
+- **Animations that don't replay.** A kept page is hidden with `display: none`, and showing it again restarts any CSS animation still on an element. So each new one-off animation runs from script (the Web Animations API) in a layout effect, which plays it once before the first paint. It's only played when something changed since the person last saw it: the tickets' first appearance in the tab, a status or a code that differs from the one shown before.
+- **Checking motion by recording it.** A 200ms animation is easily over before a test looks. The check replaced `Element.animate` in the page to record every call. The tickets animate once, nothing replays coming back from a trip, a code flips exactly when it changes, and with reduced motion nothing does at all.
+- **The greeting needs the browser.** The time of day and the name are only known there. My trips first shows "Loading your trips…" in the same two-line shape, so nothing moves when they arrive (measured: the first ticket stays put at both widths).
