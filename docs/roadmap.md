@@ -25,9 +25,9 @@
 | 6 Where the API call happens | Built in the browser (`3b2cd35`–`9cd9f4e`), plus a summary at the top (`ce3f9c3`, `08608d7`); Ask answers written; waiting for your check of each state |
 | 7 Playwright test, failing first | Done: seen passing, failing with RLS broken, then passing again (`36bbd39`, `b24cbea`) |
 | 8 Review and deploy | Done: `/security-review` findings handled, merged into `main` (PR #1) and live at https://design-assignment4.vercel.app |
-| Polish pass 2 | In progress on `polish` (below): batches 1 to 5 done, but batch 4's departure date |
+| Polish pass 2 | Done on `polish` (below): batches 1 to 5, for your review on the preview. Not merged |
 
-**Next action:** run the departure date's migration in Supabase › SQL Editor (`supabase/migrations/20261024005807_add_trip_departure.sql`); then I check the column, test the feature on its branch, run the security advisors and push it.
+**Next action:** you check Database › Advisors › Security Advisor (the Supabase MCP isn't connected, so I can't), and run the policy check in the README's Database section (4, 4 and 2). Then review the preview, and decide whether to merge `polish` into `main`.
 
 ## Step 0: Context, branch and free tiers
 
@@ -161,7 +161,7 @@ Production on `main` stays as it is; the work happens on `polish`, pushed for a 
 | 1 The trip page in two zones: the list, the weather, Trip options | Done |
 | 2 The destination code, and the takeoff bug | Done, with three more bugs of the same cause |
 | 3 A more delightful My trips | Done, with the flip from my two ideas |
-| 4 Features | Done: progress per section, Hide packed, Edit an item, Duplicate a trip. The departure date is coded on the local branch `departure`, waiting for its migration |
+| 4 Features | Done: progress per section, Hide packed, Edit an item, Duplicate a trip, and the departure date (its migration run by you in the SQL Editor) |
 | 5 Night flight dark theme | Done |
 
 After each batch: build, lint, the contrast check and the end-to-end test, then the after screenshots, a push and a summary with the preview link.
@@ -211,3 +211,4 @@ After each batch: build, lint, the contrast check and the end-to-end test, then 
 - 23 Oct, polish pass 2, batch 4: all four features without database changes (progress per section, Hide packed, Edit an item, Duplicate a trip), and the departure date as the one database change.
 - 24 Oct, polish pass 2, batch 4: you run the departure date's migration in the SQL Editor; until then, the other four features are pushed and the departure date waits on its own branch.
 - 24 Oct, polish pass 2, batch 5: the Night flight dark theme, built while the departure date's migration waits.
+- 24 Oct, polish pass 2, batch 4: you ran the departure date's migration in the SQL Editor; the file uses `add column if not exists`, so applying it again does nothing.

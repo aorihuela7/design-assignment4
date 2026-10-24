@@ -415,7 +415,7 @@ Rename and Delete moved into a Trip options menu beside the title.
 - **Edit an item in place:** rename it or move it to another section.
 - **Duplicate a trip,** from Trip options.
 - **A fix from batch 1:** on a phone, "All packed." keeps the bar to one line.
-- **The departure date** is written but waits for its migration (below).
+- **A departure date,** optional: a countdown on the card, My trips sorted by what's leaving next, and the trip's weather from that day once the 16-day forecast reaches it. Its migration adds one nullable column; row-level security is unchanged.
 
 **What I learned.**
 
@@ -424,7 +424,9 @@ Rename and Delete moved into a Trip options menu beside the title.
 - **"Next frame" isn't "after React's render".** When an edited item moves to another section, its row is a new element, and focusing it in the next animation frame sometimes ran before React had drawn it (focus fell to the page). The list now notes which Edit button should get focus, and a layout effect focuses it after the render that shows it.
 - **Two writes and no transaction.** Supabase's client can't group writes without a function in the database, which would have been a database change. So Duplicate inserts the trip, then its items, and deletes the copy again if the items fail.
 - **Adding buttons costs words their room.** With Edit beside Remove, 6 of a trip's 15 names wrapped on a phone. Narrower row buttons (still 44px targets) brought it to 2.
-- **Checking the database without its keys.** The test browser replayed one of the app's own Supabase requests, asking for the new column. Postgres answered 42703 (undefined column), so the migration hadn't run yet. The departure date's commits wait on a branch of their own (`departure`, not pushed) until it does.
+- **Checking the database without its keys.** The test browser replayed one of the app's own Supabase requests, asking for the new column, and read only the status. Postgres answered 42703 (undefined column), so the migration hadn't run yet. The departure date's commits waited on a branch of their own, unpushed, so the preview never asked for a column that wasn't there. Once the column existed, they moved back onto `polish` with a clean rebase.
+- **A migration run by hand must be safe to run again.** Like the step 7 restore, it isn't in Supabase's migration history, so a later `db push` would try it again. `add column if not exists` makes that do nothing.
+- **The dev server can serve old CSS after a rebase.** The rebase briefly checked out the older `globals.css`, and Turbopack kept serving it after the switch back. The dark screenshots came out light. Restarting my dev server fixed it, and a script now checks that every screenshot is in its theme.
 
 ### Batch 5: Night flight, a dark theme
 

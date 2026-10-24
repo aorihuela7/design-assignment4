@@ -111,6 +111,8 @@ select tablename, count(*) as policies from pg_policies where schemaname = 'publ
 
 It should list 4 policies on `trips`, 4 on `items` and 2 on `profiles`. None should be named "Step 7: …".
 
+`20261024005807_add_trip_departure.sql` (the departure date) was also run by hand in the SQL Editor. It uses `add column if not exists`, so applying it again does nothing.
+
 ## Second polish pass
 
 On the `polish` branch, in batches, with [before and after screenshots](docs/polish-2/) of every screen at 390px and 1440px.
@@ -137,6 +139,7 @@ On the `polish` branch, in batches, with [before and after screenshots](docs/pol
   - **Hide packed,** in the packing bar: hides what's packed when you press it. Items you tick after that stay in view, struck through, so nothing moves under your next tap.
   - **Edit,** beside Remove: renames an item or moves it to another section, in its row, with Add item's checks and messages.
   - **Duplicate trip,** in Trip options: a copy to pack from again, everything unticked, with a free name ("Beach weekend copy").
+  - **A departure date,** optional, from Trip options. The trip's card counts down ("Departs in 3 days") and My trips lists what's leaving next first. Once the forecast reaches the date (Open-Meteo forecasts 16 days), the trip's weather starts from that day, with the day marked, and Pack for this weather plans for it.
   - **All packed on a phone** now fits one line beside Clear all ticks, so the bar keeps its height and the list doesn't jump as the last item is ticked.
 - **"Night flight," a dark theme** for devices set to dark: the same navy band, amber and accent, with a dark page and cards. Every color pair is checked in both themes, and [`docs/polish-2/after-dark/`](docs/polish-2/after-dark/) shows every screen in it.
 
