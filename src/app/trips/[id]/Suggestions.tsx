@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -9,6 +9,8 @@ import type { Day } from "@/lib/weather";
 
 type SuggestionsProps = {
   days: Day[];
+  // How many days ahead the first one is, so the reasons say when.
+  start: number;
   items: Item[];
   // The Add item form's own add, so a suggestion is added exactly like a typed item.
   onAdd: (name: string, section: Section) => Promise<SaveResult>;
@@ -18,12 +20,14 @@ type SuggestionsProps = {
 
 // What the forecast suggests packing, each with why and Add. Nothing on the list is
 // suggested, so an added one disappears.
-export function Suggestions({ days, items, onAdd, onNoneLeft }: SuggestionsProps) {
+export function Suggestions({ days, start, items, onAdd, onNoneLeft }: SuggestionsProps) {
   const list = useRef<HTMLUListElement>(null);
   const adding = useRef(false);
   // The suggestion that couldn't be added, and what to do next.
   const [problem, setProblem] = useState<{ name: string; text: string } | null>(null);
-  const shown = suggestions(days, items);
+  // Gone when the trip is next shown (Next keeps it in the background, React's Activity).
+  useLayoutEffect(() => () => setProblem(null), []);
+  const shown = suggestions(days, items, start);
   if (shown.length === 0) return null;
 
   async function add(name: string, section: Section, index: number) {
@@ -52,8 +56,7 @@ export function Suggestions({ days, items, onAdd, onNoneLeft }: SuggestionsProps
   }
 
   return (
-    // Room underneath, so the focus ring on Change destination clears the card.
-    <div className="mt-4 mb-2 flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
       <h3 id="suggestions-heading" className="font-mono text-xs uppercase tracking-wider text-ink">
         Pack for this weather
       </h3>

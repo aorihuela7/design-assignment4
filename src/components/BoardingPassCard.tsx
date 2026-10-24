@@ -1,17 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, ViewTransition, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, ViewTransition, type MouseEvent, type ReactNode } from "react";
 import { formatDay } from "@/lib/dates";
 import { prefersReducedMotion } from "@/lib/motion";
+import type { ForecastState } from "@/lib/useForecast";
+import { degrees, describeWeather } from "@/lib/weather";
 import { Card, CardLink } from "./Card";
+import { FlipCode } from "./FlipCode";
 import { NewBadge } from "./NewBadge";
 import { RunwayProgress } from "./RunwayProgress";
 import { TextLink } from "./TextLink";
+import { WeatherIcon } from "./WeatherIcon";
 
 type BoardingPassCardProps = {
   name: string;
-  code: string; // from uniqueCodes(), so it's unique among the person's lists
+  code: string; // from tripCodes(): the destination's, or else one unique among the person's trips
+  // Where the trip goes ("Madrid, Spain"), and its weather there today; none without a destination.
+  place?: string | null;
+  today?: ForecastState | null;
+  // "Departs in 3 days", until the day it leaves.
+  departure?: string | null;
   packed: number;
   total: number;
   lastPackedAt: string | null;
@@ -20,6 +29,8 @@ type BoardingPassCardProps = {
   href: string;
   // Second link, shown with new items: opens the list ready to add one.
   forgotHref?: string;
+  // Without a destination, a link to add one in its place.
+  destinationHref?: string;
   // Shared with the trip page's title, which this name morphs into on opening.
   titleTransition: string;
 };
@@ -44,16 +55,24 @@ const notchEnd =
 export function BoardingPassCard({
   name,
   code,
+  place = null,
+  today = null,
+  departure = null,
   packed,
   total,
   lastPackedAt,
   newCount = 0,
   href,
   forgotHref,
+  destinationHref,
   titleTransition,
 }: BoardingPassCardProps) {
   const router = useRouter();
   const [departing, setDeparting] = useState(false);
+  // Next keeps My trips in the background while a trip is open (React's Activity).
+  // Hidden, the plane is back on the ground, so coming back it shows the progress
+  // and the card opens again.
+  useLayoutEffect(() => () => setDeparting(false), []);
   const stampBadge = newCount > 0 && shownNewCounts.get(href) !== newCount;
   useEffect(() => {
     shownNewCounts.set(href, newCount);
@@ -75,10 +94,11 @@ export function BoardingPassCard({
       interactive
       main={
         <>
-          {/* Decorative ticket detail; the list name is the text that matters. */}
-          <span aria-hidden="true" className="font-mono text-xs leading-none tracking-widest text-muted">
-            {code}
-          </span>
+          <p className={eyebrowClass}>
+            {/* Decorative ticket detail; the list name is the text that matters. */}
+            <FlipCode code={code} />
+            {place && <span className="uppercase">{place}</span>}
+          </p>
           <ViewTransition name={titleTransition} share="morph" default="none">
             <h2 className={nameClass}>
               <CardLink href={href} onClick={takeOff}>
@@ -86,6 +106,15 @@ export function BoardingPassCard({
               </CardLink>
             </h2>
           </ViewTransition>
+          {place && today && <TodayWeather place={place} today={today} />}
+          {!place && destinationHref && (
+            // Where the weather would be. Above the card-wide link, like Forgot something.
+            <p className="flex h-5 items-center">
+              <TextLink href={destinationHref} inline className="z-20 font-mono text-xs uppercase tracking-wider">
+                Add a destination<span className="sr-only"> to {name}</span> for weather tips
+              </TextLink>
+            </p>
+          )}
           {newCount > 0 && (
             <div className="mt-1 flex flex-col items-start">
               <NewBadge stamp={stampBadge}>{`${newCount} added for next trip`}</NewBadge>
@@ -102,19 +131,88 @@ export function BoardingPassCard({
       }
       stub={
         <>
+          {departure && <p className="font-mono text-xs uppercase tracking-wider text-ink">{departure}</p>}
           <RunwayProgress packed={packed} total={total} departing={departing} />
           {lastPackedAt && (
             <p className="font-mono text-xs uppercase tracking-wider text-muted">
               Last packed {formatDay(lastPackedAt)}
             </p>
           )}
-          {/* Visual cue only; the list name is the link's accessible name. */}
-          <span aria-hidden="true" className="self-end font-mono text-xs uppercase tracking-wider text-ink">
-            Open →
-          </span>
+          <div className="flex items-end justify-between gap-3">
+            <StatusStamp id={href} status={statusOf(packed, total)} />
+            {/* Visual cue only; the list name is the link's accessible name. */}
+            <span aria-hidden="true" className="font-mono text-xs uppercase tracking-wider text-ink">
+              Open →
+            </span>
+          </div>
         </>
       }
     />
+  );
+}
+
+// Where packing has got to, in words: never 100% until every item is ticked.
+function statusOf(packed: number, total: number) {
+  if (total > 0 && packed >= total) return "Packed";
+  if (packed === 0) return "Not started";
+  return `Boarding ${Math.max(1, Math.floor((packed / total) * 100))}%`;
+}
+
+// Statuses already shown in this tab, by card link. Memory only, reset on reload.
+const shownStatuses = new Map<string, string>();
+
+// Inked on the stub like a passport stamp. It presses on again only when the trip's
+// status has changed since the card was last seen (packing got under way, or finished),
+// never on the first sight or with reduced motion. The count beside the runway says the
+// same for screen readers.
+function StatusStamp({ id, status }: { id: string; status: string }) {
+  const stamp = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const before = shownStatuses.get(id);
+    shownStatuses.set(id, status);
+    if (before === undefined || before === status || prefersReducedMotion()) return;
+    stamp.current?.animate([{ opacity: 0, scale: "1.15", rotate: "-9deg" }], { duration: 200, easing: "ease-out" });
+  }, [id, status]);
+  return (
+    <span
+      ref={stamp}
+      aria-hidden="true"
+      className="-rotate-3 border-[3px] border-double border-ink px-1.5 py-1 font-mono text-xs leading-none uppercase tracking-wider text-ink"
+    >
+      {status}
+    </span>
+  );
+}
+
+// The code, then where the trip goes, wrapping under it if the place is long.
+const eyebrowClass = "flex flex-wrap gap-x-3 font-mono text-xs leading-4 tracking-widest text-muted";
+
+// Today's weather at the destination, in one line that keeps its height while the
+// forecast loads, so the card doesn't grow when it arrives. If it can't load, the card
+// says so and works as ever.
+function TodayWeather({ place, today }: { place: string; today: ForecastState }) {
+  const day = today.status === "ready" ? today.days[0] : null;
+  const weather = day ? describeWeather(day.code) : null;
+  return (
+    <p className="flex h-5 items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-ink">
+      {today.status === "loading" && <span aria-hidden="true" className="h-3 w-48 max-w-full rounded bg-canvas" />}
+      {today.status === "failed" && <span className="text-muted">Weather unavailable</span>}
+      {day && (
+        <>
+          <span aria-hidden="true" className="flex min-w-0 items-center gap-1.5">
+            Today
+            {weather && <WeatherIcon sky={weather.sky} background="var(--color-surface)" className="size-4" />}
+            <span className="truncate">
+              {weather?.label} {degrees(day.high)} / {degrees(day.low)}
+            </span>
+          </span>
+          <span className="sr-only">
+            Today in {place}: {weather ? `${weather.label.toLowerCase()}, ` : ""}high {degrees(day.high)}, low{" "}
+            {degrees(day.low)}.
+          </span>
+        </>
+      )}
+    </p>
   );
 }
 
@@ -154,9 +252,14 @@ export function BoardingPassSkeleton() {
     <Ticket
       main={
         <>
-          <span className="h-3 w-8 rounded bg-canvas" />
+          <span className="flex h-4 items-center">
+            <span className="h-3 w-8 rounded bg-canvas" />
+          </span>
           <span className={`${nameClass} flex h-[1.25em] items-center`}>
             <span className="h-[0.6em] w-[7em] max-w-full rounded bg-canvas" />
+          </span>
+          <span className="flex h-5 items-center">
+            <span className="h-3 w-48 max-w-full rounded bg-canvas" />
           </span>
         </>
       }
@@ -166,9 +269,13 @@ export function BoardingPassSkeleton() {
             <span className="flex-1 border-t-2 border-dashed border-line" />
             <span className="h-3 w-28 rounded bg-line/60" />
           </div>
-          <span className="flex h-4 items-center self-end">
-            <span className="h-3 w-14 rounded bg-line/60" />
-          </span>
+          {/* As tall as the stamp's row. */}
+          <div className="flex h-[26px] items-end justify-between">
+            <span className="h-5 w-24 rounded bg-line/60" />
+            <span className="flex h-4 items-center">
+              <span className="h-3 w-14 rounded bg-line/60" />
+            </span>
+          </div>
         </>
       }
     />
@@ -194,9 +301,11 @@ export function BoardingPassPreview({ name, code, titleTransition }: BoardingPas
         main={
           <>
             {code ? (
-              <span className="font-mono text-xs leading-none tracking-widest text-muted">{code}</span>
+              <span className={eyebrowClass}>{code}</span>
             ) : (
-              <span className="h-3 w-8 rounded bg-canvas" />
+              <span className="flex h-4 items-center">
+                <span className="h-3 w-8 rounded bg-canvas" />
+              </span>
             )}
             {titleTransition ? (
               <ViewTransition name={titleTransition} share="morph" default="none">

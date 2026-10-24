@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from "react";
 import { Button } from "@/components/Button";
 import { ErrorIcon, ErrorMessage } from "@/components/ErrorMessage";
 import { TextField } from "@/components/Field";
@@ -10,6 +10,8 @@ type DestinationSearchProps = {
   // Changing a destination starts from the current one, selected, ready to type over.
   initialQuery?: string;
   autoFocus?: boolean;
+  // The Destination field, for the zone to put focus in.
+  inputRef?: RefObject<HTMLInputElement | null>;
   // Resolves to whether the place was saved.
   onChoose: (place: Place) => Promise<boolean>;
   // Only when changing a destination: back to it, as Escape does.
@@ -23,17 +25,37 @@ type Results =
 
 // One column: the Destination field, Find, then the places found as a list of buttons.
 // What the search found is read out politely; the field keeps what was typed.
-export function DestinationSearch({ initialQuery = "", autoFocus = false, onChoose, onCancel }: DestinationSearchProps) {
+export function DestinationSearch({
+  initialQuery = "",
+  autoFocus = false,
+  inputRef: givenRef,
+  onChoose,
+  onCancel,
+}: DestinationSearchProps) {
   const [query, setQuery] = useState(initialQuery);
   // No errors before the first Find; after it, the error follows what's typed.
   const [attempted, setAttempted] = useState(false);
   const [results, setResults] = useState<Results>({ status: "idle" });
   const [saveFailed, setSaveFailed] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const ownRef = useRef<HTMLInputElement>(null);
+  const inputRef = givenRef ?? ownRef;
   // Only the latest search shows, whatever order the answers come back in.
   const latest = useRef(0);
   const choosing = useRef(false);
   const error = attempted ? placeQueryError(query) : null;
+  // Each visit starts a new search: Next keeps the trip in the background (React's
+  // Activity) and would show last time's text, places and messages again. One still
+  // running is dropped.
+  useLayoutEffect(
+    () => () => {
+      latest.current++;
+      setQuery("");
+      setResults({ status: "idle" });
+      setAttempted(false);
+      setSaveFailed(false);
+    },
+    [],
+  );
 
   async function search(text: string) {
     const request = ++latest.current;

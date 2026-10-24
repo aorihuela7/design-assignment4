@@ -30,6 +30,7 @@ erDiagram
     timestamptz last_packed_at "every item ticked"
     timestamptz prompt_dismissed_at "answered Packing for a new trip?"
     timestamptz ticks_cleared_at "ticks cleared for a new trip"
+    date departs_on "optional, the day it leaves"
     timestamptz created_at "order the trips were made in"
     timestamptz updated_at "any change to the trip or its items"
   }
@@ -54,4 +55,4 @@ erDiagram
 4. **Reading and changing:** every table has row-level security. Its select, insert, update and delete policies only match rows where `user_id` is that id. An item can also only point at a trip with the same `user_id`.
 5. **Signed out:** with no token, the request runs as `anon`, which has no access to any table.
 
-The forecast is never saved: only where a trip is going. The starter trips are made once per person, by `add_starter_trips()`. Because a profile can't be changed or deleted, deleting every trip doesn't bring them back.
+The forecast is never saved: only where a trip is going, and optionally the day it leaves (`departs_on`, a calendar day from 2000 to 2099). The starter trips are made once per person, by `add_starter_trips()`. Because a profile can't be changed or deleted, deleting every trip doesn't bring them back.

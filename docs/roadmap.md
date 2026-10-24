@@ -24,9 +24,10 @@
 | 5 Supabase + Clerk | App reads and writes Supabase (`7038317`–`24fc194`). Migrations applied to `fmitwpdmqajkvxczutwd` and RLS checked with two simulated users; waiting for your two-account check |
 | 6 Where the API call happens | Built in the browser (`3b2cd35`–`9cd9f4e`), plus a summary at the top (`ce3f9c3`, `08608d7`); Ask answers written; waiting for your check of each state |
 | 7 Playwright test, failing first | Done: seen passing, failing with RLS broken, then passing again (`36bbd39`, `b24cbea`) |
-| 8 Review and deploy | Not started |
+| 8 Review and deploy | Done: `/security-review` findings handled, merged into `main` (PR #1) and live at https://design-assignment4.vercel.app |
+| Polish pass 2 | Done (below): batches 1 to 5, merged into `main` with PR #2 at your request |
 
-**Next action:** you check step 5 with two accounts (neither sees the other's trips; different `user_id`s in the dashboard), then each weather state on a list page (`?weather=down` and `?weather=none` in development). The Ask Your Agent answers for steps 5 to 7 are in `docs/learning.md`, with the request diagram in `docs/request-flow.md`. Next step: 8, review and deploy.
+**Next action:** you check Database › Advisors › Security Advisor in Supabase; the Supabase MCP wasn't connected, so I couldn't run the advisors after the departure date's migration.
 
 ## Step 0: Context, branch and free tiers
 
@@ -151,6 +152,20 @@
 - **Ask Your Agent:** "Quiz me on how my app works, one question at a time, and tell me what I got wrong. Start with the questions in Be Ready to Explain."
 - **Done when:** the live URL shows nothing signed out and works signed in, a classmate has used it, every requirement below is ticked, and the Vercel and GitHub URLs are ready to submit.
 
+## Polish pass 2 (branch `polish`)
+
+Production on `main` stayed as it was while the work happened on `polish`, pushed for a Vercel preview; you asked for it to be merged once it was done. Screenshots of every screen before and after are in `docs/polish-2/`.
+
+| Batch | Status |
+|---|---|
+| 1 The trip page in two zones: the list, the weather, Trip options | Done |
+| 2 The destination code, and the takeoff bug | Done, with three more bugs of the same cause |
+| 3 A more delightful My trips | Done, with the flip from my two ideas |
+| 4 Features | Done: progress per section, Hide packed, Edit an item, Duplicate a trip, and the departure date (its migration run by you in the SQL Editor) |
+| 5 Night flight dark theme | Done |
+
+After each batch: build, lint, the contrast check and the end-to-end test, then the after screenshots, a push and a summary with the preview link.
+
 ## Requirements checklist
 
 - [ ] Accounts: sign up, sign in and sign out with Clerk; nothing visible signed out (step 4)
@@ -183,3 +198,18 @@
 - 23 Oct, step 7: two test users with `+clerk_test` emails and no passwords, created through Clerk's Backend API at your request; the test signs them in with `clerk.signIn({ emailAddress })`. Their emails are in `E2E_USER_A_EMAIL` and `E2E_USER_B_EMAIL`.
 - 23 Oct, step 7: RLS broken with a temporary permissive select policy on trips (`using (true)`), then restored. The restore was run by hand in the SQL Editor, because the MCP's confirmation for a drop couldn't reach you. Both migration files are committed.
 - 23 Oct, step 8: `/security-review` found no vulnerabilities. Fixed: the restore migration is idempotent (`drop policy if exists`) and explained in the README, and the Supabase MCP server is read-only. Not fixed, with reasons in `docs/learning.md`: Playwright failure traces, and Clerk's deprecated `createRouteMatcher`.
+- 23 Oct, polish pass 2: the screenshots are taken with the project's own Playwright, signed in as a test user, on a dev server started for them.
+- 23 Oct, polish pass 2, batch 1: Clear all ticks is hidden until something is ticked.
+- 23 Oct, polish pass 2, batch 1: only the trip page gets the wider page (two columns); the other pages keep their 900 px column.
+- 23 Oct, polish pass 2, batch 1: on a phone, the weather block starts closed every time.
+- 23 Oct, polish pass 2, batch 2: codes are worked out among all the trips, so setting or removing one trip's destination never changes another trip's code; a city with no letters to use falls back to the name's code.
+- 23 Oct, polish pass 2, batch 2: a page kept in the background starts fresh on every visit, as before: forms empty, no old messages, focus placed on arrival. Unsent text isn't kept between visits (production never kept it either).
+- 23 Oct, polish pass 2, batch 3: the greeting and one summary line replace the intro line; "Welcome back" and the starter trips' invitation become that summary.
+- 23 Oct, polish pass 2, batch 3: forecasts stay in the tab's memory for 30 minutes, as before; nothing about the weather is stored.
+- 23 Oct, polish pass 2, batch 3: of my two ideas, the code's flip like a departures board, not the barcode.
+- 23 Oct, polish pass 2, batch 4: on a phone, "All packed." alone, so the packing bar keeps one line beside Clear all ticks.
+- 23 Oct, polish pass 2, batch 4: all four features without database changes (progress per section, Hide packed, Edit an item, Duplicate a trip), and the departure date as the one database change.
+- 24 Oct, polish pass 2, batch 4: you run the departure date's migration in the SQL Editor; until then, the other four features are pushed and the departure date waits on its own branch.
+- 24 Oct, polish pass 2, batch 5: the Night flight dark theme, built while the departure date's migration waits.
+- 24 Oct, polish pass 2, batch 4: you ran the departure date's migration in the SQL Editor; the file uses `add column if not exists`, so applying it again does nothing.
+- 24 Oct, polish pass 2: you checked the policies (4, 4 and 2) and asked me to merge `polish` into `main`, through PR #2.

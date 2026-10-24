@@ -37,7 +37,7 @@ export function createId() {
 // Rows as Supabase returns them. Trips come in the order they were made (so their
 // codes stay put), and items in the order they were added.
 const ITEM_COLUMNS = "id, name, section, packed, is_new, created_at";
-const TRIP_COLUMNS = `id, name, destination_name, destination_country, latitude, longitude, timezone, last_packed_at, prompt_dismissed_at, ticks_cleared_at, updated_at, items (${ITEM_COLUMNS})`;
+const TRIP_COLUMNS = `id, name, destination_name, destination_country, latitude, longitude, timezone, last_packed_at, prompt_dismissed_at, ticks_cleared_at, departs_on, updated_at, items (${ITEM_COLUMNS})`;
 
 type ItemRow = { id: string; name: string; section: Section; packed: boolean; is_new: boolean; created_at: string };
 
@@ -52,6 +52,7 @@ type TripRow = {
   last_packed_at: string | null;
   prompt_dismissed_at: string | null;
   ticks_cleared_at: string | null;
+  departs_on: string | null;
   updated_at: string;
   items: ItemRow[];
 };
@@ -86,6 +87,7 @@ function toTrip(row: TripRow): Trip {
     lastPackedAt: row.last_packed_at,
     promptDismissedAt: row.prompt_dismissed_at,
     ticksClearedAt: row.ticks_cleared_at,
+    departsOn: row.departs_on,
     updatedAt: row.updated_at,
   };
 }
@@ -331,6 +333,70 @@ export function setDestination(tripId: string, destination: Destination | null) 
   }, false);
 }
 
+// A copy of a trip to pack from again: the name given, the same destination (not its
+// departure date: a copy is for another time), and every item unticked and no longer
+// New, in the same order. Two writes, the trip and
+// then its items; if the items don't save, the copy is deleted again, so no empty
+// trip is left behind.
+export function duplicateTrip(sourceId: string, id: string, name: string) {
+  return enqueue<SaveResult>(async (owner) => {
+    const source = shownTrips().find((trip) => trip.id === sourceId);
+    if (!source) return "failed";
+    const { destination } = source;
+    try {
+      await owner.db
+        .from("trips")
+        .insert({
+          id,
+          name,
+          destination_name: destination?.name ?? null,
+          destination_country: destination?.country ?? null,
+          latitude: destination?.latitude ?? null,
+          longitude: destination?.longitude ?? null,
+          timezone: destination?.timezone ?? null,
+        })
+        .throwOnError();
+    } catch (error) {
+      return whyNotSaved(owner, error, (trips) => tripNameProblem(name, trips)?.kind === "duplicate");
+    }
+    try {
+      if (source.items.length > 0) {
+        // Times 1 ms apart keep the items in the order they're listed in.
+        const start = Date.now();
+        await owner.db
+          .from("items")
+          .insert(
+            source.items.map((item, i) => ({
+              trip_id: id,
+              name: item.name,
+              section: item.section,
+              packed: false,
+              is_new: false,
+              created_at: new Date(start + i).toISOString(),
+            })),
+          )
+          .throwOnError();
+      }
+      const trips = await fetchTrips(owner.db);
+      commit(owner, () => trips);
+      return "saved";
+    } catch (error) {
+      console.error(error);
+      await owner.db.from("trips").delete().eq("id", id);
+      return "failed";
+    }
+  }, "failed");
+}
+
+// Sets the day a trip leaves ("2026-10-30"), or clears it with null.
+export function setDeparture(tripId: string, departsOn: string | null) {
+  return enqueue(async (owner) => {
+    const ok = await succeeds(() => owner.db.from("trips").update({ departs_on: departsOn }).eq("id", tripId).throwOnError());
+    if (ok) commit(owner, onTrip(tripId, { departsOn }));
+    return ok;
+  }, false);
+}
+
 // Its items go with it (on delete cascade).
 export function deleteTrip(tripId: string) {
   return enqueue(async (owner) => {
@@ -413,6 +479,26 @@ export function removeItem(tripId: string, itemId: string) {
     (items) => items.filter((item) => item.id !== itemId),
     (db) => db.from("items").delete().eq("id", itemId).throwOnError(),
   );
+}
+
+// Renames an item or moves it to another section. Saved first, then shown, like
+// adding one, so the form keeps what was typed if it fails. A name another item has
+// (in another tab, say) comes back as a duplicate.
+export function editItem(tripId: string, itemId: string, change: { name: string; section: Section }) {
+  return enqueue<SaveResult>(async (owner) => {
+    try {
+      await owner.db
+        .from("items")
+        .update({ name: change.name, section: change.section })
+        .eq("id", itemId)
+        .throwOnError();
+      commit(owner, onTrip(tripId, {}, (items) => items.map((item) => (item.id === itemId ? { ...item, ...change } : item))));
+      return "saved";
+    } catch (error) {
+      const others = (trips: Trip[]) => trips.find((trip) => trip.id === tripId)?.items.filter((item) => item.id !== itemId) ?? [];
+      return whyNotSaved(owner, error, (trips) => itemNamed(change.name, others(trips)) !== undefined);
+    }
+  }, "failed");
 }
 
 // Undo: puts a removed item back with its id and the time it was first added, so it

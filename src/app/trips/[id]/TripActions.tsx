@@ -1,4 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type RefObject,
+} from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorMessage, NOT_SAVED } from "@/components/ErrorMessage";
@@ -8,66 +17,84 @@ import { tripNameMessage } from "@/components/tripNameMessage";
 import type { SaveResult } from "@/lib/storage";
 import { cleanName, tripNameProblem, type Trip } from "@/lib/trips";
 
-type TripActionsProps = {
-  trip: Trip;
-  otherTrips: Trip[];
-  packed: number;
-  onClearTicks: () => void;
-  onRename: (name: string) => Promise<SaveResult>;
-  // Resolves to whether the trip was deleted; if it was, the page leaves.
-  onDelete: () => Promise<boolean>;
+type TripOptionsProps = {
+  // Where focus goes back to when the menu, or what it opened, closes.
+  buttonRef: RefObject<HTMLButtonElement | null>;
+  onRename: () => void;
+  onDeparture: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
 };
 
-// The bottom of the list: Clear all ticks, Rename trip and Delete trip. Rename and
-// Delete open in place (never a modal); Escape or Cancel closes them and focus
-// goes back to the button that opened them.
-export function TripActions({ trip, otherTrips, packed, onClearTicks, onRename, onDelete }: TripActionsProps) {
-  const [mode, setMode] = useState<"idle" | "rename" | "delete">("idle");
-  const renameButton = useRef<HTMLButtonElement>(null);
-  const deleteButton = useRef<HTMLButtonElement>(null);
+// "Trip options" beside the trip's title on the band: Rename trip, Departure date,
+// Duplicate trip and Delete trip, all rare, so tucked away. A button that opens a short list of buttons (not a modal):
+// Escape closes it and puts focus back on the button; leaving it with Tab, or clicking
+// anywhere else, closes it too.
+export function TripOptions({ buttonRef, onRename, onDeparture, onDuplicate, onDelete }: TripOptionsProps) {
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const box = useRef<HTMLDivElement>(null);
 
-  const close = () => {
-    const opener = mode === "rename" ? renameButton : deleteButton;
-    setMode("idle");
-    requestAnimationFrame(() => opener.current?.focus());
+  // A menu is a passing thing: closed again when Next keeps the page in the background.
+  useLayoutEffect(() => () => setOpen(false), []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!box.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  const choose = (action: () => void) => {
+    setOpen(false);
+    action();
   };
 
-  if (mode === "delete") {
-    return <DeleteConfirm trip={trip} onDelete={onDelete} onCancel={close} />;
-  }
-
-  if (mode === "rename") {
-    return (
-      <RenameForm
-        current={trip.name}
-        otherTrips={otherTrips}
-        onSave={async (name) => {
-          const result = name === trip.name ? "saved" : await onRename(name);
-          if (result === "saved") close();
-          return result;
-        }}
-        onCancel={close}
-      />
-    );
-  }
-
-  // Clearing ticks is part of packing; renaming and deleting are rare, so they're
-  // quieter text actions under a divider.
   return (
-    <div className="flex flex-col items-start gap-4">
-      {trip.items.length > 0 && (
-        <Button onClick={onClearTicks} disabled={packed === 0}>
-          Clear all ticks
-        </Button>
+    <div
+      ref={box}
+      className="relative"
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || !open) return;
+        setOpen(false);
+        buttonRef.current?.focus();
+      }}
+      onBlur={(event) => {
+        if (!box.current?.contains(event.relatedTarget as Node)) setOpen(false);
+      }}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen((isOpen) => !isOpen)}
+        className="-mx-1 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded px-1 font-mono text-xs uppercase tracking-widest text-amber underline underline-offset-4 hover:decoration-2 active:bg-amber active:text-board"
+      >
+        Trip options
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 16 16"
+          className={`size-3.5 transition-transform duration-150 ease-out motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      </button>
+      {open && (
+        // A light card on the band: data-surface gives its buttons the navy focus ring.
+        <div
+          id={menuId}
+          data-surface="light"
+          className="absolute top-full left-0 z-40 mt-1 flex w-52 flex-col rounded border border-ink bg-surface px-3 py-1 motion-safe:animate-reveal"
+        >
+          <TextButton onClick={() => choose(onRename)}>Rename trip</TextButton>
+          <TextButton onClick={() => choose(onDeparture)}>Departure date</TextButton>
+          <TextButton onClick={() => choose(onDuplicate)}>Duplicate trip</TextButton>
+          <TextButton onClick={() => choose(onDelete)}>Delete trip</TextButton>
+        </div>
       )}
-      <div className="flex w-full flex-wrap gap-x-6 border-t border-line pt-2">
-        <TextButton ref={renameButton} onClick={() => setMode("rename")}>
-          Rename trip
-        </TextButton>
-        <TextButton ref={deleteButton} onClick={() => setMode("delete")}>
-          Delete trip
-        </TextButton>
-      </div>
     </div>
   );
 }
@@ -76,7 +103,7 @@ export function TripActions({ trip, otherTrips, packed, onClearTicks, onRename, 
 // reaches Delete trip, then Cancel.
 type DeleteConfirmProps = { trip: Trip; onDelete: () => Promise<boolean>; onCancel: () => void };
 
-function DeleteConfirm({ trip, onDelete, onCancel }: DeleteConfirmProps) {
+export function DeleteConfirm({ trip, onDelete, onCancel }: DeleteConfirmProps) {
   const items = trip.items.length;
   const question = useRef<HTMLParagraphElement>(null);
   const [failed, setFailed] = useState(false);
@@ -143,7 +170,7 @@ type RenameFormProps = {
   onCancel: () => void;
 };
 
-function RenameForm({ current, otherTrips, onSave, onCancel }: RenameFormProps) {
+export function RenameForm({ current, otherTrips, onSave, onCancel }: RenameFormProps) {
   const [name, setName] = useState(current);
   // Same rules as New trip: no errors before the first save, then they follow what's typed.
   const [attempted, setAttempted] = useState(false);
@@ -192,6 +219,90 @@ function RenameForm({ current, otherTrips, onSave, onCancel }: RenameFormProps) 
         />
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button type="submit">Save</Button>
+          <Button onClick={onCancel}>Cancel</Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+type DepartureFormProps = {
+  // The day saved now, if any ("2026-10-30").
+  current: string | null;
+  // Today on the person's calendar: the earliest day to pick.
+  today: string;
+  // Saves the day, or removes it with null; resolves to whether it saved.
+  onSave: (day: string | null) => Promise<boolean>;
+  onCancel: () => void;
+};
+
+// The day the trip leaves: the browser's own date field, checked like the other
+// forms. It's optional, so Remove date takes it off again.
+export function DepartureForm({ current, today, onSave, onCancel }: DepartureFormProps) {
+  const [day, setDay] = useState(current ?? "");
+  // No errors before the first save; after it, the error follows what's picked.
+  const [attempted, setAttempted] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const saving = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // A past day is fine only if it's the one already saved.
+  const problem = (picked: string) =>
+    picked === ""
+      ? "Pick a day, or Cancel"
+      : picked > "2099-12-31"
+        ? "Pick a day before 2100"
+        : picked < today && picked !== current
+          ? "Pick today or a later day"
+          : null;
+  const error = (attempted ? problem(day) : null) ?? (failed ? NOT_SAVED : null);
+
+  async function save(value: string | null) {
+    if (saving.current) return;
+    saving.current = true;
+    const saved = await onSave(value);
+    saving.current = false;
+    if (saved) return;
+    setFailed(true);
+    inputRef.current?.focus();
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (problem(day)) {
+      setAttempted(true); // keeps what was picked
+      inputRef.current?.focus();
+      return;
+    }
+    void save(day);
+  }
+
+  return (
+    <Card className="motion-safe:animate-reveal">
+      <form
+        noValidate
+        onSubmit={submit}
+        onKeyDown={(event) => event.key === "Escape" && onCancel()}
+        aria-label="Departure date"
+        className="flex flex-col gap-4"
+      >
+        <TextField
+          ref={inputRef}
+          type="date"
+          label="Departure date"
+          autoFocus
+          min={today}
+          max="2099-12-31"
+          value={day}
+          onChange={(event) => {
+            setDay(event.target.value);
+            setFailed(false);
+          }}
+          error={error ?? undefined}
+          className="sm:max-w-xs"
+        />
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button type="submit">Save</Button>
+          {current && <Button onClick={() => void save(null)}>Remove date</Button>}
           <Button onClick={onCancel}>Cancel</Button>
         </div>
       </form>

@@ -7,6 +7,7 @@ import type { Item } from "@/lib/trips";
 type ItemRowProps = {
   item: Item;
   onToggle: () => void;
+  onEdit: () => void;
   onRemove: () => void;
   // Just added or restored: plays its entrance and the arrive highlight once.
   arrived?: "added" | "restored" | null;
@@ -23,7 +24,7 @@ const strike =
 // The whole row is the checkbox's label, so the hit area is at least 44px high.
 // Hovering the row, or keyboard focus anywhere in it, tints it edge to edge; the
 // end rows round their corners to fit the card.
-export function ItemRow({ item, onToggle, onRemove, arrived = null, justPacked = false }: ItemRowProps) {
+export function ItemRow({ item, onToggle, onEdit, onRemove, arrived = null, justPacked = false }: ItemRowProps) {
   const draw = justPacked ? "motion-safe:animate-draw" : "";
   const row = useRef<HTMLLIElement>(null);
   // An added row grows to its height (rows below slide down instead of jumping); a
@@ -83,15 +84,23 @@ export function ItemRow({ item, onToggle, onRemove, arrived = null, justPacked =
         {/* Added after All packed: the badge stamps in as the row lands. */}
         {item.isNew && <NewBadge stamp={arrived === "added"} />}
       </label>
-      {/* Always visible, never only on hover. Removing is immediate. */}
-      <Button variant="subtle" aria-label={`Remove ${item.name}`} onClick={onRemove} className="shrink-0">
-        Remove
-      </Button>
+      {/* Always visible, never only on hover. Edit opens the row as a form; removing is immediate. */}
+      <div className="flex shrink-0">
+        <Button id={editButtonId(item.id)} variant="subtle" aria-label={`Edit ${item.name}`} onClick={onEdit}>
+          Edit
+        </Button>
+        <Button variant="subtle" aria-label={`Remove ${item.name}`} onClick={onRemove}>
+          Remove
+        </Button>
+      </div>
     </li>
   );
 }
 
 export const UNDO_ROW_ID = "undo-removed-item";
+
+// Where focus goes back to once an item's edit closes, wherever the item went.
+export const editButtonId = (itemId: string) => `edit-${itemId}`;
 
 export type UndoHold = (reason: "pointer" | "focus", held: boolean) => void;
 

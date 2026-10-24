@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { BoardingPassCard, BoardingPassSkeleton } from "@/components/BoardingPassCard";
 import { Button, ButtonLink } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
@@ -9,25 +10,88 @@ import { LoadFailed } from "@/components/LoadFailed";
 import { Notice } from "@/components/Notice";
 import { Page } from "@/components/Page";
 import { SectionHeading } from "@/components/SectionHeading";
-import { uniqueCodes } from "@/lib/codes";
-import { clearFlash, peekFlash } from "@/lib/flash";
+import { tripCodes } from "@/lib/codes";
+import { departureCountdown, localDay } from "@/lib/dates";
+import { useFlash } from "@/lib/flash";
+import { prefersReducedMotion } from "@/lib/motion";
 import { isUntouchedStarters } from "@/lib/starters";
 import { addStarterTripsBack, useStorage } from "@/lib/storage";
-import { tripTitleTransition, welcomeBackCount, type Trip } from "@/lib/trips";
+import { isAllPacked, tripTitleTransition, welcomeBackCount, type Trip } from "@/lib/trips";
+import { useForecast } from "@/lib/useForecast";
 import { useNow } from "@/lib/useNow";
+import { placeLabel } from "@/lib/weather";
 
 function newestFirst(a: Trip, b: Trip) {
   return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
 }
 
+// What's leaving next comes first, soonest first; then the rest, last changed first.
+function nextDepartureFirst(today: string | null) {
+  const next = (trip: Trip) => (today && trip.departsOn && trip.departsOn >= today ? trip.departsOn : null);
+  return (a: Trip, b: Trip) => {
+    const [first, second] = [next(a), next(b)];
+    if (first && second) return first.localeCompare(second) || newestFirst(a, b);
+    if (first || second) return first ? -1 : 1;
+    return newestFirst(a, b);
+  };
+}
+
+// "Good evening, Alejandro." By the person's own clock, with their first name when
+// their account has one; "Welcome back" after 2 days away.
+function greeting(now: number, firstName: string | null, welcomeBack: boolean) {
+  const hour = new Date(now).getHours();
+  const hello = welcomeBack
+    ? "Welcome back"
+    : hour >= 5 && hour < 12
+      ? "Good morning"
+      : hour >= 12 && hour < 18
+        ? "Good afternoon"
+        : "Good evening";
+  return firstName ? `${hello}, ${firstName}.` : `${hello}.`;
+}
+
+// One line on where the trips stand, under the greeting.
+function summary(trips: Trip[], readyAgain: number) {
+  const plural = (n: number) => `${n} ${n === 1 ? "trip" : "trips"}`;
+  if (readyAgain > 0) return `${plural(readyAgain)} ready to pack again.`;
+  if (isUntouchedStarters(trips)) return `${trips.length} starter trips. Open one, make it yours.`;
+  const packed = trips.filter((trip) => isAllPacked(trip.items)).length;
+  const toPack = trips.length - packed;
+  if (toPack === 0) return packed === 1 ? "1 trip packed." : `All ${packed} trips packed.`;
+  return packed > 0 ? `${plural(toPack)} to pack, ${packed} packed.` : `${plural(toPack)} to pack.`;
+}
+
+// The greeting and the summary beside New trip, the primary action, on wide screens.
+function Intro({ hello, line }: { hello: string | null; line: string }) {
+  return (
+    <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="min-h-6 font-bold text-ink">{hello}</p>
+        <p className="text-muted">{line}</p>
+      </div>
+      <ButtonLink variant="primary" href="/trips/new">
+        New trip
+      </ButtonLink>
+    </div>
+  );
+}
+
 // Same on the server and the first client render, so hydration matches. Shaped
-// like the page: the status sits where the New trip row goes, then three tickets.
+// like the page: the status where the greeting goes, beside New trip, then three tickets.
 function Loading() {
   return (
     <>
-      <p role="status" className="flex min-h-11 items-center text-muted">
-        Loading your trips…
-      </p>
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p role="status" className="min-h-6 text-muted">
+            Loading your trips…
+          </p>
+          <span aria-hidden="true" className="flex h-6 items-center">
+            <span className="h-3 w-48 rounded bg-line/60" />
+          </span>
+        </div>
+        <span aria-hidden="true" className="h-11 w-30 rounded bg-line/60" />
+      </div>
       <ul aria-hidden="true" className="flex flex-col gap-8">
         {[0, 1, 2].map((i) => (
           <li key={i}>
@@ -42,18 +106,16 @@ function Loading() {
 export function MyTrips() {
   const storage = useStorage();
   const now = useNow();
+  const { user } = useUser();
 
   // A message from the page before, like "Deleted Beach weekend". It takes focus
   // once, so it's read out and keyboard focus isn't lost.
-  const [flash] = useState(peekFlash);
+  const flash = useFlash();
   const flashRef = useRef<HTMLDivElement>(null);
   const ready = storage.status === "ready";
   useEffect(() => {
-    clearFlash();
-  }, []);
-  useEffect(() => {
-    if (ready) flashRef.current?.focus();
-  }, [ready]);
+    if (ready && flash) flashRef.current?.focus();
+  }, [ready, flash]);
 
   if (storage.status === "failed") {
     return (
@@ -74,15 +136,11 @@ export function MyTrips() {
 
   const { trips } = storage;
   // Codes come from storage order, so they stay put when the sort changes.
-  const codes = uniqueCodes(trips);
-  // One line under the title at most: welcome back wins over the starter line.
+  const codes = tripCodes(trips);
+  // Welcome back wins over the starter line. The time of day is only known in the
+  // browser; until then the greeting's line keeps its place, empty.
   const readyAgain = now === null ? 0 : welcomeBackCount(trips, now);
-  const intro =
-    readyAgain > 0
-      ? `Welcome back. ${readyAgain} ${readyAgain === 1 ? "trip" : "trips"} ready to pack again.`
-      : isUntouchedStarters(trips)
-        ? "Starter trips. Open one, make it yours."
-        : null;
+  const hello = now === null ? null : greeting(now, user?.firstName?.trim() || null, readyAgain > 0);
 
   return (
     <Page title="My trips">
@@ -96,36 +154,74 @@ export function MyTrips() {
         <NoTrips />
       ) : (
         <>
-          {/* The primary action stays at the top, beside the intro on wide screens. */}
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            {intro && <p className="text-muted">{intro}</p>}
-            {/* Right of the intro when there is one; otherwise left, so no empty gap. */}
-            <ButtonLink variant="primary" href="/trips/new" className={intro ? "sm:ml-auto" : ""}>
-              New trip
-            </ButtonLink>
-          </div>
+          <Intro hello={hello} line={summary(trips, readyAgain)} />
 
-          {/* 32px: notches stick out 10px on each side, so they never meet. */}
-          <ul className="flex flex-col gap-8">
-            {[...trips].sort(newestFirst).map((trip) => (
+          <TripList>
+            {[...trips].sort(nextDepartureFirst(now === null ? null : localDay(now))).map((trip) => (
               <li key={trip.id}>
-                <BoardingPassCard
-                  name={trip.name}
+                <TripCard
+                  trip={trip}
                   code={codes.get(trip.id) ?? ""}
-                  packed={trip.items.filter((item) => item.packed).length}
-                  total={trip.items.length}
-                  lastPackedAt={trip.lastPackedAt}
-                  newCount={trip.items.filter((item) => item.isNew).length}
-                  href={`/trips/${trip.id}`}
-                  forgotHref={`/trips/${trip.id}?add=1`}
-                  titleTransition={tripTitleTransition(trip.id)}
+                  departure={trip.departsOn && now !== null ? departureCountdown(trip.departsOn, now) : null}
                 />
               </li>
             ))}
-          </ul>
+          </TripList>
         </>
       )}
     </Page>
+  );
+}
+
+// Whether the tickets have come in yet in this tab. Memory only, reset on reload.
+let ticketsEntered = false;
+
+// The tickets, 32px apart: notches stick out 10px on each side, so they never meet. The
+// first time they show in a tab they come in one after another, a little up and into
+// view, 200ms each; never again in that tab (not coming back from a trip, say), and not
+// with reduced motion. Only opacity and position move, so they can be clicked at once.
+function TripList({ children }: { children: ReactNode }) {
+  const list = useRef<HTMLUListElement>(null);
+  useLayoutEffect(() => {
+    if (ticketsEntered || !list.current) return;
+    ticketsEntered = true;
+    if (prefersReducedMotion()) return;
+    [...list.current.children].slice(0, 5).forEach((ticket, i) =>
+      ticket.animate([{ opacity: 0, translate: "0 8px" }, {}], {
+        duration: 200,
+        delay: i * 40,
+        easing: "ease-out",
+        fill: "backwards",
+      }),
+    );
+  }, []);
+  return (
+    <ul ref={list} className="flex flex-col gap-8">
+      {children}
+    </ul>
+  );
+}
+
+// A trip's ticket, with today's weather where it's going: the same forecast its page
+// shows, so opening the trip asks Open-Meteo nothing more.
+function TripCard({ trip, code, departure }: { trip: Trip; code: string; departure: string | null }) {
+  const today = useForecast(trip.destination);
+  return (
+    <BoardingPassCard
+      name={trip.name}
+      code={code}
+      place={trip.destination ? placeLabel(trip.destination) : null}
+      today={today}
+      departure={departure}
+      packed={trip.items.filter((item) => item.packed).length}
+      total={trip.items.length}
+      lastPackedAt={trip.lastPackedAt}
+      newCount={trip.items.filter((item) => item.isNew).length}
+      href={`/trips/${trip.id}`}
+      forgotHref={`/trips/${trip.id}?add=1`}
+      destinationHref={`/trips/${trip.id}?destination=1`}
+      titleTransition={tripTitleTransition(trip.id)}
+    />
   );
 }
 

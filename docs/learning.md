@@ -346,3 +346,95 @@ It also raised four lower-risk points, plus one you added. Here's what we did wi
 | The Supabase MCP server could write to the database | Not for the app, which never uses it. It is a risk for development: an agent, or instructions hidden in data it reads, could change the real database. | **Fixed** (`0e02276`): `read_only=true` in `.mcp.json`. New migrations go through the SQL Editor, or by switching it back on purpose. |
 | Playwright keeps a trace of a failed test, including the test users' cookies and tokens | Low. They belong to development-instance test accounts, stay on this computer, and `test-results/` is git-ignored. | **Not fixed:** the trace is the best way to see why a test failed, and these tokens open nothing real. |
 | Clerk's `createRouteMatcher` is deprecated, and a path-based check can leave protected server resources reachable | Not here: the pages hold no data on the server. Everything comes from Supabase under row-level security, so even a skipped page check would show nothing. | **Not fixed:** moving `auth.protect()` into every page is a bigger change for no gain today. Revisit before Clerk removes the function. |
+
+## Polish pass 2
+
+A second pass on design and features, on the `polish` branch, in batches. Screenshots of every screen before and after are in [`docs/polish-2/`](polish-2/).
+
+### Batch 1: the trip page in two zones
+
+**What changed.** The trip page now has two zones:
+
+- **The list:** the runway and count with Clear all ticks, a compact Add item form, then the sections.
+- **The weather:** the destination with Change and Remove, today's summary, the next 7 days, Pack for this weather and the credit to Open-Meteo. On wider screens it's a panel beside the list; on a phone, one block at the top that opens and closes.
+
+Rename and Delete moved into a Trip options menu beside the title.
+
+**Why.** The weather was split in two, a summary at the top and the forecast after the list, so it pushed the list down and was easy to miss. Rename and Delete sat under the list, though they're rare and Delete can't be undone.
+
+**What I learned.**
+
+- **Next.js keeps pages alive.** Next 16 keeps up to three visited pages in React's `<Activity>`, so going back shows a page as you left it, state and all (`node_modules/next/dist/docs/01-app/02-guides/preserving-ui-state.md`). Anything passing has to be reset when the page is hidden, in a `useLayoutEffect` cleanup: an open menu, the phone's open weather block, a Rename card. The same behavior causes two older bugs found while taking the screenshots. My trips doesn't say "Deleted …", and a card you've opened can't be opened again. Batch 2 fixes both.
+- **A sticky panel in a grid needs `align-items: start`.** Otherwise the panel stretches to the row's height and has nowhere to stick. It also needs a maximum height and its own scroll for windows shorter than it, with a little padding so focus rings aren't cut off at its edges.
+- **The forecast board sizes itself by its own width.** A container query, not the window's width: it's a 24rem panel on a laptop and full width on a phone.
+- **Page order is a trade-off.** The weather comes first in the page, so on a phone the closed block at the top is the first stop. On wider screens, Tab visits the panel before the list.
+- **A minifier surprise:** Tailwind's `[border-image:none]` came out as an empty `border-image:` in the built CSS, which the browser ignores. `border-image-source: none` works.
+- **The loading state is shaped like the page,** and measured: nothing moves when the trip arrives, at 390px or 1440px.
+
+### Batch 2: destination codes, and pages kept in the background
+
+**What changed.**
+
+- **Destination codes:** a trip with a destination is coded by its city's first 3 letters, without accents (Madrid MAD, Málaga MAL, São Paulo SAO). Without one, it keeps its name's code.
+- **Four bugs fixed,** all from one cause, and all in production too:
+  - A card you'd opened kept its plane at the end of the runway and wouldn't open again.
+  - My trips didn't say "Deleted …".
+  - New trip came back with the last trip's name, and Create trip then did nothing.
+  - A trip opened again kept its last message and didn't put focus on its name.
+
+**What I learned.**
+
+- **Seen failing first.** A script opened and closed every trip, by the Back link and by the browser's back, and compared each card's plane with its count. On the old code it found planes stuck at 100%, cards that wouldn't open again and the missing "Deleted …". Extended, it found the other two bugs. All 23 of its checks pass now.
+- **`useParams()` follows the page on screen, even in a kept page.** While My trips showed, each kept trip page looked for a trip with no id and rendered "Trip not found" out of sight. It tore its list down and built it again on the next visit. That's why its message stayed (it belongs to the page, which stayed) while its form came back empty. The fix is Next's own pattern: the route passes its `params` promise into Suspense, and the list reads it with `use()`.
+- **A message to say once needs a store.** "Deleted …" was read into My trips' state when the page was first made, and a kept page isn't made again. It's now read from a small store each time the page shows (`useSyncExternalStore`), and cleared once the page is hidden. In development React mounts everything twice, so the clear waits a moment, and the second mount cancels it.
+- **Resetting on hide is the general fix.** Next's guide resets passing state in a `useLayoutEffect` cleanup, which runs when the page is hidden. The card's takeoff, the trip page's message and Undo, its forms and its arrival focus all reset that way. Each page starts fresh, as it did before. Kept pages still make going back instant.
+- **Codes that don't move.** Name codes are worked out among all the trips, with or without destinations. Setting or removing one trip's destination never changes another trip's code.
+
+### Batch 3: a more delightful My trips
+
+**What changed.**
+
+- **A greeting:** the time of day and the first name from the person's account, then one line on where the trips stand. "Welcome back" and the starter trips' invitation fold into that line.
+- **Where each trip goes and its weather today,** on its card, or an invitation to add a destination.
+- **A status stamp:** NOT STARTED, BOARDING n% or PACKED.
+- **Motion:** the tickets' entrance, a lift on hover and focus, the stamp pressing on, and the code flipping when the destination changes.
+
+**What I learned.**
+
+- **One forecast, counted.** The cards use the trip page's forecast, kept in the tab for 30 minutes. A request already on its way is shared too, so two cards for one city make one call between them. Counted on the network: My trips asked twice, once for each destination, and opening both trips asked nothing more. With Open-Meteo blocked, both cards said "Weather unavailable" and still opened.
+- **Animations that don't replay.** A kept page is hidden with `display: none`, and showing it again restarts any CSS animation still on an element. So each new one-off animation runs from script (the Web Animations API) in a layout effect, which plays it once before the first paint. It's only played when something changed since the person last saw it: the tickets' first appearance in the tab, a status or a code that differs from the one shown before.
+- **Checking motion by recording it.** A 200ms animation is easily over before a test looks. The check replaced `Element.animate` in the page to record every call. The tickets animate once, nothing replays coming back from a trip, a code flips exactly when it changes, and with reduced motion nothing does at all.
+- **The greeting needs the browser.** The time of day and the name are only known there. My trips first shows "Loading your trips…" in the same two-line shape, so nothing moves when they arrive (measured: the first ticket stays put at both widths).
+
+### Batch 4: features
+
+**What changed.**
+
+- **Progress per section:** "2 of 3 packed" beside each heading.
+- **Hide packed,** in the packing bar.
+- **Edit an item in place:** rename it or move it to another section.
+- **Duplicate a trip,** from Trip options.
+- **A fix from batch 1:** on a phone, "All packed." keeps the bar to one line.
+- **A departure date,** optional: a countdown on the card, My trips sorted by what's leaving next, and the trip's weather from that day once the 16-day forecast reaches it. Its migration adds one nullable column; row-level security is unchanged.
+
+**What I learned.**
+
+- **Check a fixed height at every width and in every state.** Batch 1 measured the packing bar at 65px, but at 1440px. At 390px, "All packed. Have a good trip." wrapped beside Clear all ticks, and the bar grew 28px just as the last item was ticked. Measured now at 390, 640, 1024 and 1440 in every state: 65px.
+- **Hiding is a snapshot.** Hiding each item as it's ticked would pull the next row under the finger, the same trap as the first round's removals. So Hide packed hides what was packed when it was pressed.
+- **"Next frame" isn't "after React's render".** When an edited item moves to another section, its row is a new element, and focusing it in the next animation frame sometimes ran before React had drawn it (focus fell to the page). The list now notes which Edit button should get focus, and a layout effect focuses it after the render that shows it.
+- **Two writes and no transaction.** Supabase's client can't group writes without a function in the database, which would have been a database change. So Duplicate inserts the trip, then its items, and deletes the copy again if the items fail.
+- **Adding buttons costs words their room.** With Edit beside Remove, 6 of a trip's 15 names wrapped on a phone. Narrower row buttons (still 44px targets) brought it to 2.
+- **Checking the database without its keys.** The test browser replayed one of the app's own Supabase requests, asking for the new column, and read only the status. Postgres answered 42703 (undefined column), so the migration hadn't run yet. The departure date's commits waited on a branch of their own, unpushed, so the preview never asked for a column that wasn't there. Once the column existed, they moved back onto `polish` with a clean rebase.
+- **A migration run by hand must be safe to run again.** Like the step 7 restore, it isn't in Supabase's migration history, so a later `db push` would try it again. `add column if not exists` makes that do nothing.
+- **The dev server can serve old CSS after a rebase.** The rebase briefly checked out the older `globals.css`, and Turbopack kept serving it after the switch back. The dark screenshots came out light. Restarting my dev server fixed it, and a script now checks that every screenshot is in its theme.
+
+### Batch 5: Night flight, a dark theme
+
+**What changed.** With the device set to dark, the page and its cards go a deep navy and ink turns light. The band, its amber and the accent stay as they are, so it's still the Departures board.
+
+**What I learned.**
+
+- **Tokens make a theme one block of CSS.** Tailwind's colors are CSS variables, so the dark theme only overrides five of them (canvas, surface, ink, muted, line) under `prefers-color-scheme: dark`. Clerk's forms follow too, since their appearance already used the same variables.
+- **Names that assume a light page break.** The focus ring was the band's navy, which would vanish on a dark page; it's ink now, a near-identical navy in the light theme and light at night. Delete trip's solid ink button had white text, which at night would be white on light; it takes the card's color instead. Clerk's Continue keeps white explicitly, since it sits on the accent.
+- **A check that reads one theme can't check two.** The contrast script collected every `--color-` value into one list, so dark overrides with the same names would have silently replaced the light ones. It now reads the light tokens and the dark overrides separately and runs every pair for each. All 24 required pairs pass in both; the lowest is white on the accent, 5.76:1 in both.
+- **Screens in dark, the same way as in light.** The screenshot script's browser takes `colorScheme: "dark"`, so `after-dark/` repeats every screen from the same starting point.
