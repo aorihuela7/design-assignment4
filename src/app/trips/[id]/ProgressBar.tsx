@@ -70,7 +70,11 @@ export function ProgressBar({
               >
                 {/* The plane, not a tick: a filled tick box read like a checkbox. */}
                 <PlaneIcon className="size-5 shrink-0" />
-                All packed. Have a good trip.
+                {/* On one line beside Clear all ticks, so the bar keeps its height: on a
+                    phone it says only "All packed." (the rest is still read out). */}
+                <span>
+                  All packed.<span className="sr-only sm:not-sr-only"> Have a good trip.</span>
+                </span>
               </p>
             )}
           </div>
