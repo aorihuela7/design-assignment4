@@ -11,6 +11,7 @@ import { Notice } from "@/components/Notice";
 import { Page } from "@/components/Page";
 import { SectionHeading } from "@/components/SectionHeading";
 import { tripCodes } from "@/lib/codes";
+import { departureCountdown, localDay } from "@/lib/dates";
 import { useFlash } from "@/lib/flash";
 import { prefersReducedMotion } from "@/lib/motion";
 import { isUntouchedStarters } from "@/lib/starters";
@@ -22,6 +23,17 @@ import { placeLabel } from "@/lib/weather";
 
 function newestFirst(a: Trip, b: Trip) {
   return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+}
+
+// What's leaving next comes first, soonest first; then the rest, last changed first.
+function nextDepartureFirst(today: string | null) {
+  const next = (trip: Trip) => (today && trip.departsOn && trip.departsOn >= today ? trip.departsOn : null);
+  return (a: Trip, b: Trip) => {
+    const [first, second] = [next(a), next(b)];
+    if (first && second) return first.localeCompare(second) || newestFirst(a, b);
+    if (first || second) return first ? -1 : 1;
+    return newestFirst(a, b);
+  };
 }
 
 // "Good evening, Alejandro." By the person's own clock, with their first name when
@@ -145,9 +157,13 @@ export function MyTrips() {
           <Intro hello={hello} line={summary(trips, readyAgain)} />
 
           <TripList>
-            {[...trips].sort(newestFirst).map((trip) => (
+            {[...trips].sort(nextDepartureFirst(now === null ? null : localDay(now))).map((trip) => (
               <li key={trip.id}>
-                <TripCard trip={trip} code={codes.get(trip.id) ?? ""} />
+                <TripCard
+                  trip={trip}
+                  code={codes.get(trip.id) ?? ""}
+                  departure={trip.departsOn && now !== null ? departureCountdown(trip.departsOn, now) : null}
+                />
               </li>
             ))}
           </TripList>
@@ -188,7 +204,7 @@ function TripList({ children }: { children: ReactNode }) {
 
 // A trip's ticket, with today's weather where it's going: the same forecast its page
 // shows, so opening the trip asks Open-Meteo nothing more.
-function TripCard({ trip, code }: { trip: Trip; code: string }) {
+function TripCard({ trip, code, departure }: { trip: Trip; code: string; departure: string | null }) {
   const today = useForecast(trip.destination);
   return (
     <BoardingPassCard
@@ -196,6 +212,7 @@ function TripCard({ trip, code }: { trip: Trip; code: string }) {
       code={code}
       place={trip.destination ? placeLabel(trip.destination) : null}
       today={today}
+      departure={departure}
       packed={trip.items.filter((item) => item.packed).length}
       total={trip.items.length}
       lastPackedAt={trip.lastPackedAt}

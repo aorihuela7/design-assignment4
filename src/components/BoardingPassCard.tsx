@@ -19,6 +19,8 @@ type BoardingPassCardProps = {
   // Where the trip goes ("Madrid, Spain"), and its weather there today; none without a destination.
   place?: string | null;
   today?: ForecastState | null;
+  // "Departs in 3 days", until the day it leaves.
+  departure?: string | null;
   packed: number;
   total: number;
   lastPackedAt: string | null;
@@ -55,6 +57,7 @@ export function BoardingPassCard({
   code,
   place = null,
   today = null,
+  departure = null,
   packed,
   total,
   lastPackedAt,
@@ -128,6 +131,7 @@ export function BoardingPassCard({
       }
       stub={
         <>
+          {departure && <p className="font-mono text-xs uppercase tracking-wider text-ink">{departure}</p>}
           <RunwayProgress packed={packed} total={total} departing={departing} />
           {lastPackedAt && (
             <p className="font-mono text-xs uppercase tracking-wider text-muted">
