@@ -415,6 +415,26 @@ export function removeItem(tripId: string, itemId: string) {
   );
 }
 
+// Renames an item or moves it to another section. Saved first, then shown, like
+// adding one, so the form keeps what was typed if it fails. A name another item has
+// (in another tab, say) comes back as a duplicate.
+export function editItem(tripId: string, itemId: string, change: { name: string; section: Section }) {
+  return enqueue<SaveResult>(async (owner) => {
+    try {
+      await owner.db
+        .from("items")
+        .update({ name: change.name, section: change.section })
+        .eq("id", itemId)
+        .throwOnError();
+      commit(owner, onTrip(tripId, {}, (items) => items.map((item) => (item.id === itemId ? { ...item, ...change } : item))));
+      return "saved";
+    } catch (error) {
+      const others = (trips: Trip[]) => trips.find((trip) => trip.id === tripId)?.items.filter((item) => item.id !== itemId) ?? [];
+      return whyNotSaved(owner, error, (trips) => itemNamed(change.name, others(trips)) !== undefined);
+    }
+  }, "failed");
+}
+
 // Undo: puts a removed item back with its id and the time it was first added, so it
 // keeps its place in the list.
 export function restoreItem(tripId: string, item: Item, index: number) {

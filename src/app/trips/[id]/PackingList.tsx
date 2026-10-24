@@ -21,6 +21,7 @@ import {
   clearTicks,
   createId,
   deleteTrip,
+  editItem,
   removeItem,
   renameTrip,
   restoreItem,
@@ -44,7 +45,8 @@ import { useNow } from "@/lib/useNow";
 import { placeLabel } from "@/lib/weather";
 import { AddItemForm } from "./AddItemForm";
 import { BACK_TO_MY_TRIPS, ListLoading } from "./ListLoading";
-import { ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "./ItemRow";
+import { EditItem } from "./EditItem";
+import { editButtonId, ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "./ItemRow";
 import { ProgressBar } from "./ProgressBar";
 import { DeleteConfirm, RenameForm, TripOptions } from "./TripActions";
 import { Weather, type WeatherHandle } from "./Weather";
@@ -119,6 +121,17 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
   // What "Hide packed" hides: the items packed when it was pressed. Ones ticked after
   // stay in view, struck through, so nothing moves under the next tap.
   const [hiddenIds, setHiddenIds] = useState<Set<string> | null>(null);
+  // The item being renamed or moved, in its row; one at a time.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  // Once an edit closes, its item's Edit button takes focus, after the render that shows
+  // it there (a moved item's row is a new one, in its new section).
+  const refocusEdit = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const itemId = refocusEdit.current;
+    if (!itemId || editingId !== null) return;
+    refocusEdit.current = null;
+    document.getElementById(editButtonId(itemId))?.focus();
+  });
   // What Trip options opened: Rename and Delete show in place, above the list.
   const [options, setOptions] = useState<"idle" | "rename" | "delete">("idle");
   const optionsButton = useRef<HTMLButtonElement>(null);
@@ -164,6 +177,7 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
       setTakeoff(null);
       setOptions("idle");
       setHiddenIds(null);
+      setEditingId(null);
       arrived.current = false;
     },
     [],
@@ -253,6 +267,29 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
     setAnnouncement(`Restored ${item.name}`);
     setLanded({ id: item.id, how: "restored" });
     requestAnimationFrame(() => document.getElementById(`item-${item.id}`)?.focus());
+  };
+  // An edit closes back to its item's Edit button, in whichever section it's now in.
+  const closeEdit = (itemId: string) => {
+    refocusEdit.current = itemId;
+    setEditingId(null);
+  };
+  const saveEdit = async (item: Item, name: string, section: Section): Promise<SaveResult> => {
+    if (name === item.name && section === item.section) {
+      closeEdit(item.id);
+      return "saved";
+    }
+    const result = await editItem(tripId, item.id, { name, section });
+    if (result !== "saved") return result;
+    const label = SECTIONS.find((s) => s.value === section)?.label ?? "Other";
+    setAnnouncement(
+      section === item.section
+        ? `Renamed to ${name}`
+        : name === item.name
+          ? `Moved ${name} to ${label}`
+          : `Renamed to ${name}, in ${label}`,
+    );
+    closeEdit(item.id);
+    return result;
   };
   const focusCount = () => requestAnimationFrame(() => document.getElementById(COUNT_ID)?.focus());
   const clear = () => {
@@ -449,6 +486,14 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
                         onUndo={() => undoRemove(pending)}
                         onHold={holdUndo}
                       />
+                    ) : item.id === editingId ? (
+                      <EditItem
+                        key={`edit-${item.id}`}
+                        item={item}
+                        otherItems={trip.items.filter((other) => other.id !== item.id)}
+                        onSave={(name, section) => saveEdit(item, name, section)}
+                        onCancel={() => closeEdit(item.id)}
+                      />
                     ) : (
                       <ItemRow
                         key={item.id}
@@ -456,6 +501,7 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
                         arrived={landed?.id === item.id ? landed.how : null}
                         justPacked={item.id === justPackedId}
                         onToggle={() => toggle(item.id)}
+                        onEdit={() => setEditingId(item.id)}
                         onRemove={() => remove(item)}
                       />
                     ),
