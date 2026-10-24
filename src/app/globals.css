@@ -156,9 +156,10 @@
     font-family: var(--font-sans);
   }
 
-  /* Navy focus ring on light surfaces, amber on the Board band. */
+  /* An ink focus ring on the page and its cards (dark navy, or light at night), amber
+     on the Board band. */
   :focus-visible {
-    outline: 2px solid var(--color-board);
+    outline: 2px solid var(--color-ink);
     outline-offset: 2px;
   }
 
@@ -167,14 +168,14 @@
   }
 
   [data-surface="board"] [data-surface="light"] :focus-visible {
-    outline-color: var(--color-board);
+    outline-color: var(--color-ink);
   }
 }
 
 /* The clerk layer comes after base, so Clerk's controls get the same ring again here. */
 @layer components {
   :is([class^="cl-"], [class*=" cl-"]):focus-visible {
-    outline: 2px solid var(--color-board);
+    outline: 2px solid var(--color-ink);
     outline-offset: 2px;
   }
 

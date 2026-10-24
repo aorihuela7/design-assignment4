@@ -11,9 +11,10 @@ const variants = {
   primary:
     "border-accent bg-accent px-4 text-sm text-white enabled:hover:border-accent-hover enabled:hover:bg-accent-hover enabled:active:border-accent-pressed enabled:active:bg-accent-pressed",
   secondary: "border-ink bg-surface px-4 text-sm text-ink enabled:hover:bg-canvas enabled:active:bg-line",
-  // Confirms something that can't be undone: solid ink, distinct from Cancel without the accent.
+  // Confirms something that can't be undone: solid ink, distinct from Cancel without the
+  // accent. Its text is the card's color, so it reads at night too, when ink is light.
   danger:
-    "border-ink bg-ink px-4 text-sm text-white enabled:hover:border-muted enabled:hover:bg-muted enabled:active:border-board enabled:active:bg-board",
+    "border-ink bg-ink px-4 text-sm text-surface enabled:hover:border-muted enabled:hover:bg-muted enabled:active:border-board enabled:active:bg-board enabled:active:text-white",
   // In-place actions inside a row, like Undo: no border until hovered.
   quiet: "border-transparent bg-transparent px-4 text-sm text-ink enabled:hover:border-ink enabled:active:bg-line",
   // Repeated on every row, like Edit and Remove: small, muted until hovered or focused,
