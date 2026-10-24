@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { BoardingPassCard, BoardingPassSkeleton } from "@/components/BoardingPassCard";
 import { Button, ButtonLink } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
@@ -12,6 +12,7 @@ import { Page } from "@/components/Page";
 import { SectionHeading } from "@/components/SectionHeading";
 import { tripCodes } from "@/lib/codes";
 import { useFlash } from "@/lib/flash";
+import { prefersReducedMotion } from "@/lib/motion";
 import { isUntouchedStarters } from "@/lib/starters";
 import { addStarterTripsBack, useStorage } from "@/lib/storage";
 import { isAllPacked, tripTitleTransition, welcomeBackCount, type Trip } from "@/lib/trips";
@@ -143,17 +144,45 @@ export function MyTrips() {
         <>
           <Intro hello={hello} line={summary(trips, readyAgain)} />
 
-          {/* 32px: notches stick out 10px on each side, so they never meet. */}
-          <ul className="flex flex-col gap-8">
+          <TripList>
             {[...trips].sort(newestFirst).map((trip) => (
               <li key={trip.id}>
                 <TripCard trip={trip} code={codes.get(trip.id) ?? ""} />
               </li>
             ))}
-          </ul>
+          </TripList>
         </>
       )}
     </Page>
+  );
+}
+
+// Whether the tickets have come in yet in this tab. Memory only, reset on reload.
+let ticketsEntered = false;
+
+// The tickets, 32px apart: notches stick out 10px on each side, so they never meet. The
+// first time they show in a tab they come in one after another, a little up and into
+// view, 200ms each; never again in that tab (not coming back from a trip, say), and not
+// with reduced motion. Only opacity and position move, so they can be clicked at once.
+function TripList({ children }: { children: ReactNode }) {
+  const list = useRef<HTMLUListElement>(null);
+  useLayoutEffect(() => {
+    if (ticketsEntered || !list.current) return;
+    ticketsEntered = true;
+    if (prefersReducedMotion()) return;
+    [...list.current.children].slice(0, 5).forEach((ticket, i) =>
+      ticket.animate([{ opacity: 0, translate: "0 8px" }, {}], {
+        duration: 200,
+        delay: i * 40,
+        easing: "ease-out",
+        fill: "backwards",
+      }),
+    );
+  }, []);
+  return (
+    <ul ref={list} className="flex flex-col gap-8">
+      {children}
+    </ul>
   );
 }
 
