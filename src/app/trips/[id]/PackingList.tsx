@@ -1,7 +1,7 @@
 "use client";
 
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
@@ -72,8 +72,8 @@ function moveFocusOffUndo() {
   );
 }
 
-export function PackingList() {
-  const { id } = useParams<{ id: string }>();
+export function PackingList({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const storage = useStorage();
   const now = useNow();
