@@ -405,3 +405,23 @@ Rename and Delete moved into a Trip options menu beside the title.
 - **Animations that don't replay.** A kept page is hidden with `display: none`, and showing it again restarts any CSS animation still on an element. So each new one-off animation runs from script (the Web Animations API) in a layout effect, which plays it once before the first paint. It's only played when something changed since the person last saw it: the tickets' first appearance in the tab, a status or a code that differs from the one shown before.
 - **Checking motion by recording it.** A 200ms animation is easily over before a test looks. The check replaced `Element.animate` in the page to record every call. The tickets animate once, nothing replays coming back from a trip, a code flips exactly when it changes, and with reduced motion nothing does at all.
 - **The greeting needs the browser.** The time of day and the name are only known there. My trips first shows "Loading your trips…" in the same two-line shape, so nothing moves when they arrive (measured: the first ticket stays put at both widths).
+
+### Batch 4: features
+
+**What changed.**
+
+- **Progress per section:** "2 of 3 packed" beside each heading.
+- **Hide packed,** in the packing bar.
+- **Edit an item in place:** rename it or move it to another section.
+- **Duplicate a trip,** from Trip options.
+- **A fix from batch 1:** on a phone, "All packed." keeps the bar to one line.
+- **The departure date** is written but waits for its migration (below).
+
+**What I learned.**
+
+- **Check a fixed height at every width and in every state.** Batch 1 measured the packing bar at 65px, but at 1440px. At 390px, "All packed. Have a good trip." wrapped beside Clear all ticks, and the bar grew 28px just as the last item was ticked. Measured now at 390, 640, 1024 and 1440 in every state: 65px.
+- **Hiding is a snapshot.** Hiding each item as it's ticked would pull the next row under the finger, the same trap as the first round's removals. So Hide packed hides what was packed when it was pressed.
+- **"Next frame" isn't "after React's render".** When an edited item moves to another section, its row is a new element, and focusing it in the next animation frame sometimes ran before React had drawn it (focus fell to the page). The list now notes which Edit button should get focus, and a layout effect focuses it after the render that shows it.
+- **Two writes and no transaction.** Supabase's client can't group writes without a function in the database, which would have been a database change. So Duplicate inserts the trip, then its items, and deletes the copy again if the items fail.
+- **Adding buttons costs words their room.** With Edit beside Remove, 6 of a trip's 15 names wrapped on a phone. Narrower row buttons (still 44px targets) brought it to 2.
+- **Checking the database without its keys.** The test browser replayed one of the app's own Supabase requests, asking for the new column. Postgres answered 42703 (undefined column), so the migration hadn't run yet. The departure date's commits wait on a branch of their own (`departure`, not pushed) until it does.

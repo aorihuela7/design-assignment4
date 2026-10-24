@@ -132,6 +132,12 @@ On the `polish` branch, in batches, with [before and after screenshots](docs/pol
   - **Where each trip goes, and its weather today there:** "MÁLAGA, SPAIN", and under the name an icon with the words and the high and low. It's the same forecast the trip page shows, so opening the trip asks Open-Meteo for nothing more. Trips with no destination invite "Add a destination for weather tips", which opens the trip ready to type one.
   - **A status stamp** on each stub: NOT STARTED, BOARDING 40% or PACKED.
   - **Motion:** the tickets come in one after another the first time they show, a card lifts 2px on hover or keyboard focus, a stamp presses on when its status changes, and a code flips like a departures board when the destination changes it. All of it 200ms or less per element, and none of it with reduced motion.
+- **Packing, made easier.**
+  - **Progress per section:** "2 of 3 packed" beside each section's heading.
+  - **Hide packed,** in the packing bar: hides what's packed when you press it. Items you tick after that stay in view, struck through, so nothing moves under your next tap.
+  - **Edit,** beside Remove: renames an item or moves it to another section, in its row, with Add item's checks and messages.
+  - **Duplicate trip,** in Trip options: a copy to pack from again, everything unticked, with a free name ("Beach weekend copy").
+  - **All packed on a phone** now fits one line beside Clear all ticks, so the bar keeps its height and the list doesn't jump as the last item is ticked.
 
 ## History: assignment 3
 
