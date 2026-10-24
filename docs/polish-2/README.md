@@ -23,6 +23,10 @@ Every screen before and after the second polish pass (branch `polish`), at 390 p
 
 The test accounts have no first name in Clerk, so the greeting on My trips says "Good evening." with no name.
 
+## Night flight
+
+`after-dark/` has every screen in `after/` again, with the browser set to dark (Playwright's `colorScheme: "dark"`), so the dark theme from batch 5 shows. Same names, same starting point.
+
 ## Not captured
 
 "Welcome back" and "Packing for a new trip?" only show for trips last changed or packed more than 2 days ago. They can't be reached without editing timestamps in the database.
