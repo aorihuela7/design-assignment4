@@ -1,7 +1,8 @@
 import { cleanName, type Destination } from "./trips";
 
 // Open-Meteo, called from the browser (see AGENTS.md › Weather): the place search, to
-// find a trip's destination, and the next 7 days' forecast there. No key.
+// find a trip's destination, and its forecast there: 16 days, of which the trip page
+// shows 7. No key.
 
 export type Place = Destination & { id: number; region: string | null };
 
@@ -191,7 +192,8 @@ async function requestForecast(destination: ForecastPlace): Promise<Day[]> {
     daily: DAILY.join(","),
     // Open-Meteo works out the time zone from the coordinates when none was saved.
     timezone: destination.timezone ?? "auto",
-    forecast_days: "7",
+    // As far ahead as it goes, so a departure up to 16 days away has its weather.
+    forecast_days: "16",
   }).toString();
   const days = toDays(await getJson(url));
   forecasts.set(forecastKey(destination), { expires: Date.now() + FORECAST_TTL_MS, days });
@@ -200,6 +202,15 @@ async function requestForecast(destination: ForecastPlace): Promise<Day[]> {
 
 // How a day's weather is drawn and said. Every WMO code Open-Meteo sends maps to one of
 // these; each label's words are short enough for the board at 390px.
+// The 7 days a trip page shows: from today, or from the departure day when the
+// forecast reaches it, moved back if need be so 7 still fit. start is how many days
+// ahead the first one is.
+export function boardDays(days: Day[], departsOn: string | null) {
+  const departure = departsOn ? days.findIndex((day) => day.date === departsOn) : -1;
+  const start = departure > 0 ? Math.min(departure, Math.max(0, days.length - 7)) : 0;
+  return { start, days: days.slice(start, start + 7) };
+}
+
 export type Sky = "clear" | "partly" | "cloudy" | "fog" | "drizzle" | "rain" | "snow" | "storm";
 
 export function describeWeather(code: number | null): { sky: Sky; label: string } | null {

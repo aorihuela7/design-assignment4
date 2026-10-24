@@ -1,3 +1,4 @@
+import { formatCalendarDay } from "./dates";
 import { itemNamed, type Item, type Section } from "./trips";
 import { weekday, type Day } from "./weather";
 
@@ -53,21 +54,23 @@ const RULES: Rule[] = [
   },
 ];
 
-// The forecast starts today, at the destination.
-function when(day: Day, index: number) {
-  if (index === 0) return "today";
-  if (index === 1) return "tomorrow";
-  return `on ${weekday(day.date)}`;
+// Said from today, at the destination; a week or more ahead, with its date, since the
+// weekday alone could be either week.
+function when(day: Day, daysAhead: number) {
+  if (daysAhead === 0) return "today";
+  if (daysAhead === 1) return "tomorrow";
+  if (daysAhead < 7) return `on ${weekday(day.date)}`;
+  return `on ${formatCalendarDay(day.date)}`;
 }
 
 // What the forecast suggests packing, in the order above. Anything already on the
-// list (ignoring case) is never suggested.
-export function suggestions(days: Day[], items: Item[]): Suggestion[] {
+// list (ignoring case) is never suggested. start: how many days ahead the first day is.
+export function suggestions(days: Day[], items: Item[], start = 0): Suggestion[] {
   return RULES.flatMap(({ name, section, find, reason }) => {
     if (itemNamed(name, items)) return [];
     for (const [index, day] of days.entries()) {
       const value = find(day);
-      if (value !== null) return [{ name, section, reason: reason(when(day, index), value) }];
+      if (value !== null) return [{ name, section, reason: reason(when(day, start + index), value) }];
     }
     return [];
   });

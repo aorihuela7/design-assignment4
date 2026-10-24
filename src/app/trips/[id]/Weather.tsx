@@ -7,7 +7,8 @@ import type { SaveResult } from "@/lib/storage";
 import { suggestions } from "@/lib/suggestions";
 import type { LoadedForecast } from "@/lib/useForecast";
 import type { Destination, Item, Section, Trip } from "@/lib/trips";
-import { degrees, placeLabel, type Place } from "@/lib/weather";
+import { formatCalendarDay } from "@/lib/dates";
+import { boardDays, degrees, placeLabel, type Place } from "@/lib/weather";
 import { DestinationSearch } from "./DestinationSearch";
 import { Forecast } from "./Forecast";
 import { Suggestions } from "./Suggestions";
@@ -131,7 +132,7 @@ export function Weather({ trip, forecast, onSetDestination, onAdd, ref }: Weathe
           className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded border border-line bg-surface px-4 py-3 text-left hover:border-ink"
         >
           {destination && forecast ? (
-            <TodaySummary destination={destination} forecast={forecast} items={trip.items} withPlace />
+            <TodaySummary destination={destination} forecast={forecast} items={trip.items} departsOn={trip.departsOn} withPlace />
           ) : (
             <span className="flex min-w-0 flex-col">
               <span className="font-mono text-xs leading-4 uppercase tracking-wider text-ink">Weather</span>
@@ -176,17 +177,23 @@ export function Weather({ trip, forecast, onSetDestination, onAdd, ref }: Weathe
             {removeFailed && <ErrorMessage role="alert">Not removed. Check your connection and try again</ErrorMessage>}
             {/* On a phone the button above already shows it. */}
             <div className="hidden lg:flex">
-              <TodaySummary destination={destination} forecast={forecast} items={trip.items} />
+              <TodaySummary destination={destination} forecast={forecast} items={trip.items} departsOn={trip.departsOn} />
             </div>
             <Forecast
               state={forecast}
+              departsOn={trip.departsOn}
               onRetry={() => {
                 focusZone();
                 forecast.retry();
               }}
             />
+            {forecast.status === "ready" && trip.departsOn && trip.departsOn > (forecast.days.at(-1)?.date ?? trip.departsOn) && (
+              <p className="text-sm text-muted">
+                {formatCalendarDay(trip.departsOn)} is beyond the 16-day forecast. Check back nearer the day.
+              </p>
+            )}
             {forecast.status === "ready" && (
-              <Suggestions days={forecast.days} items={trip.items} onAdd={onAdd} onNoneLeft={focusZone} />
+              <Suggestions {...boardDays(forecast.days, trip.departsOn)} items={trip.items} onAdd={onAdd} onNoneLeft={focusZone} />
             )}
             {forecast.status !== "failed" && (
               <p className="text-sm text-muted">
@@ -207,18 +214,20 @@ type TodaySummaryProps = {
   destination: Destination;
   forecast: LoadedForecast;
   items: Item[];
+  departsOn: string | null;
   // The phone's button names the place; the panel's heading already does.
   withPlace?: boolean;
 };
 
-// Today in two lines: the high and low, then the first tip from the forecast. Two
-// lines whatever it says, so nothing moves as the forecast arrives.
-function TodaySummary({ destination, forecast, items, withPlace = false }: TodaySummaryProps) {
+// Today in two lines: the high and low, then the first tip from the days the board
+// shows (the trip's, once it's near). Two lines whatever it says, so nothing moves as
+// the forecast arrives.
+function TodaySummary({ destination, forecast, items, departsOn, withPlace = false }: TodaySummaryProps) {
   const today = forecast.status === "ready" ? forecast.days[0] : null;
-  const hint =
-    forecast.status === "ready"
-      ? (suggestions(forecast.days, items)[0]?.reason ?? "Nothing extra to pack for the weather")
-      : forecast.status === "failed"
+  const board = forecast.status === "ready" ? boardDays(forecast.days, departsOn) : null;
+  const hint = board
+    ? (suggestions(board.days, items, board.start)[0]?.reason ?? "Nothing extra to pack for the weather")
+    : forecast.status === "failed"
         ? "Weather is unavailable right now"
         : null;
   const bar = "inline-block rounded bg-line/60 align-middle";

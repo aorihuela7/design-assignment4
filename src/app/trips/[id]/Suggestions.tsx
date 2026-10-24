@@ -9,6 +9,8 @@ import type { Day } from "@/lib/weather";
 
 type SuggestionsProps = {
   days: Day[];
+  // How many days ahead the first one is, so the reasons say when.
+  start: number;
   items: Item[];
   // The Add item form's own add, so a suggestion is added exactly like a typed item.
   onAdd: (name: string, section: Section) => Promise<SaveResult>;
@@ -18,14 +20,14 @@ type SuggestionsProps = {
 
 // What the forecast suggests packing, each with why and Add. Nothing on the list is
 // suggested, so an added one disappears.
-export function Suggestions({ days, items, onAdd, onNoneLeft }: SuggestionsProps) {
+export function Suggestions({ days, start, items, onAdd, onNoneLeft }: SuggestionsProps) {
   const list = useRef<HTMLUListElement>(null);
   const adding = useRef(false);
   // The suggestion that couldn't be added, and what to do next.
   const [problem, setProblem] = useState<{ name: string; text: string } | null>(null);
   // Gone when the trip is next shown (Next keeps it in the background, React's Activity).
   useLayoutEffect(() => () => setProblem(null), []);
-  const shown = suggestions(days, items);
+  const shown = suggestions(days, items, start);
   if (shown.length === 0) return null;
 
   async function add(name: string, section: Section, index: number) {
