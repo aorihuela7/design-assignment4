@@ -43,11 +43,12 @@ export function Weather({ trip, forecast, onSetDestination, onAdd }: WeatherProp
   const changeButton = useRef<HTMLButtonElement>(null);
 
   // Next keeps a visited page in the background (React's Activity). Coming back, the
-  // zone is closed and out of any change, as on a fresh visit.
+  // zone is closed, out of any change and without last time's error, as on a fresh visit.
   useLayoutEffect(
     () => () => {
       setExpanded(false);
       setChanging(false);
+      setRemoveFailed(false);
     },
     [],
   );

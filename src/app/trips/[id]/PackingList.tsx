@@ -119,8 +119,6 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
   // What Trip options opened: Rename and Delete show in place, above the list.
   const [options, setOptions] = useState<"idle" | "rename" | "delete">("idle");
   const optionsButton = useRef<HTMLButtonElement>(null);
-  // Closed again when Next keeps the page in the background, as on a fresh visit.
-  useLayoutEffect(() => () => setOptions("idle"), []);
 
   const trip = storage.status === "ready" ? storage.trips.find((t) => t.id === id) : undefined;
   const forecast = useForecast(trip?.destination ?? null);
@@ -145,6 +143,21 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
     if (isEmpty || wantsAdd) inputRef.current?.focus();
     else document.getElementById(PAGE_TITLE_ID)?.focus({ preventScroll: true });
   }, [hasTrip, isEmpty, wantsAdd]);
+
+  // Next keeps a visited trip in the background (React's Activity) and shows it again
+  // as it was. Each visit starts fresh instead: no message or Undo from last time, no
+  // animation playing again, Trip options closed, and focus placed on arrival.
+  useLayoutEffect(
+    () => () => {
+      setFeedback(null);
+      setLanded(null);
+      setJustPackedId(null);
+      setTakeoff(null);
+      setOptions("idle");
+      arrived.current = false;
+    },
+    [],
+  );
 
   if (storage.status === "loading") return <ListLoading />;
 

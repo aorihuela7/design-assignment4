@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -23,6 +23,8 @@ export function Suggestions({ days, items, onAdd, onNoneLeft }: SuggestionsProps
   const adding = useRef(false);
   // The suggestion that couldn't be added, and what to do next.
   const [problem, setProblem] = useState<{ name: string; text: string } | null>(null);
+  // Gone when the trip is next shown (Next keeps it in the background, React's Activity).
+  useLayoutEffect(() => () => setProblem(null), []);
   const shown = suggestions(days, items);
   if (shown.length === 0) return null;
 

@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Button } from "@/components/Button";
 import { ErrorIcon, ErrorMessage } from "@/components/ErrorMessage";
 import { TextField } from "@/components/Field";
@@ -34,6 +34,19 @@ export function DestinationSearch({ initialQuery = "", autoFocus = false, onChoo
   const latest = useRef(0);
   const choosing = useRef(false);
   const error = attempted ? placeQueryError(query) : null;
+  // Each visit starts a new search: Next keeps the trip in the background (React's
+  // Activity) and would show last time's text, places and messages again. One still
+  // running is dropped.
+  useLayoutEffect(
+    () => () => {
+      latest.current++;
+      setQuery("");
+      setResults({ status: "idle" });
+      setAttempted(false);
+      setSaveFailed(false);
+    },
+    [],
+  );
 
   async function search(text: string) {
     const request = ++latest.current;

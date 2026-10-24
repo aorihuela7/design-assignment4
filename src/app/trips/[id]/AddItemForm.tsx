@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type FormEvent, type RefObject } from "react";
+import { useId, useLayoutEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { NOT_SAVED } from "@/components/ErrorMessage";
@@ -31,6 +31,17 @@ export function AddItemForm({ items, onAdd, onError, inputRef, forgotMode }: Add
   const [failed, setFailed] = useState(false);
   const saving = useRef(false);
   const error = (attemptedIn === forgotMode ? itemNameError(name, items) : null) ?? (failed ? NOT_SAVED : null);
+  // Each visit starts empty, on Clothes: Next keeps the trip in the background (React's
+  // Activity) and would show last time's text and error again.
+  useLayoutEffect(
+    () => () => {
+      setName("");
+      setSection("clothes");
+      setAttemptedIn(null);
+      setFailed(false);
+    },
+    [],
+  );
 
   async function submit(event: FormEvent) {
     event.preventDefault();
