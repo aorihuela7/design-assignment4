@@ -14,7 +14,9 @@ import { useFlash } from "@/lib/flash";
 import { isUntouchedStarters } from "@/lib/starters";
 import { addStarterTripsBack, useStorage } from "@/lib/storage";
 import { tripTitleTransition, welcomeBackCount, type Trip } from "@/lib/trips";
+import { useForecast } from "@/lib/useForecast";
 import { useNow } from "@/lib/useNow";
+import { placeLabel } from "@/lib/weather";
 
 function newestFirst(a: Trip, b: Trip) {
   return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
@@ -106,23 +108,34 @@ export function MyTrips() {
           <ul className="flex flex-col gap-8">
             {[...trips].sort(newestFirst).map((trip) => (
               <li key={trip.id}>
-                <BoardingPassCard
-                  name={trip.name}
-                  code={codes.get(trip.id) ?? ""}
-                  packed={trip.items.filter((item) => item.packed).length}
-                  total={trip.items.length}
-                  lastPackedAt={trip.lastPackedAt}
-                  newCount={trip.items.filter((item) => item.isNew).length}
-                  href={`/trips/${trip.id}`}
-                  forgotHref={`/trips/${trip.id}?add=1`}
-                  titleTransition={tripTitleTransition(trip.id)}
-                />
+                <TripCard trip={trip} code={codes.get(trip.id) ?? ""} />
               </li>
             ))}
           </ul>
         </>
       )}
     </Page>
+  );
+}
+
+// A trip's ticket, with today's weather where it's going: the same forecast its page
+// shows, so opening the trip asks Open-Meteo nothing more.
+function TripCard({ trip, code }: { trip: Trip; code: string }) {
+  const today = useForecast(trip.destination);
+  return (
+    <BoardingPassCard
+      name={trip.name}
+      code={code}
+      place={trip.destination ? placeLabel(trip.destination) : null}
+      today={today}
+      packed={trip.items.filter((item) => item.packed).length}
+      total={trip.items.length}
+      lastPackedAt={trip.lastPackedAt}
+      newCount={trip.items.filter((item) => item.isNew).length}
+      href={`/trips/${trip.id}`}
+      forgotHref={`/trips/${trip.id}?add=1`}
+      titleTransition={tripTitleTransition(trip.id)}
+    />
   );
 }
 

@@ -4,14 +4,20 @@ import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useState, ViewTransition, type MouseEvent, type ReactNode } from "react";
 import { formatDay } from "@/lib/dates";
 import { prefersReducedMotion } from "@/lib/motion";
+import type { ForecastState } from "@/lib/useForecast";
+import { degrees, describeWeather } from "@/lib/weather";
 import { Card, CardLink } from "./Card";
 import { NewBadge } from "./NewBadge";
 import { RunwayProgress } from "./RunwayProgress";
 import { TextLink } from "./TextLink";
+import { WeatherIcon } from "./WeatherIcon";
 
 type BoardingPassCardProps = {
   name: string;
   code: string; // from tripCodes(): the destination's, or else one unique among the person's trips
+  // Where the trip goes ("Madrid, Spain"), and its weather there today; none without a destination.
+  place?: string | null;
+  today?: ForecastState | null;
   packed: number;
   total: number;
   lastPackedAt: string | null;
@@ -44,6 +50,8 @@ const notchEnd =
 export function BoardingPassCard({
   name,
   code,
+  place = null,
+  today = null,
   packed,
   total,
   lastPackedAt,
@@ -79,10 +87,11 @@ export function BoardingPassCard({
       interactive
       main={
         <>
-          {/* Decorative ticket detail; the list name is the text that matters. */}
-          <span aria-hidden="true" className="font-mono text-xs leading-none tracking-widest text-muted">
-            {code}
-          </span>
+          <p className={eyebrowClass}>
+            {/* Decorative ticket detail; the list name is the text that matters. */}
+            <span aria-hidden="true">{code}</span>
+            {place && <span className="uppercase">{place}</span>}
+          </p>
           <ViewTransition name={titleTransition} share="morph" default="none">
             <h2 className={nameClass}>
               <CardLink href={href} onClick={takeOff}>
@@ -90,6 +99,7 @@ export function BoardingPassCard({
               </CardLink>
             </h2>
           </ViewTransition>
+          {place && today && <TodayWeather place={place} today={today} />}
           {newCount > 0 && (
             <div className="mt-1 flex flex-col items-start">
               <NewBadge stamp={stampBadge}>{`${newCount} added for next trip`}</NewBadge>
@@ -119,6 +129,38 @@ export function BoardingPassCard({
         </>
       }
     />
+  );
+}
+
+// The code, then where the trip goes, wrapping under it if the place is long.
+const eyebrowClass = "flex flex-wrap gap-x-3 font-mono text-xs leading-4 tracking-widest text-muted";
+
+// Today's weather at the destination, in one line that keeps its height while the
+// forecast loads, so the card doesn't grow when it arrives. If it can't load, the card
+// says so and works as ever.
+function TodayWeather({ place, today }: { place: string; today: ForecastState }) {
+  const day = today.status === "ready" ? today.days[0] : null;
+  const weather = day ? describeWeather(day.code) : null;
+  return (
+    <p className="flex h-5 items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-ink">
+      {today.status === "loading" && <span aria-hidden="true" className="h-3 w-48 max-w-full rounded bg-canvas" />}
+      {today.status === "failed" && <span className="text-muted">Weather unavailable</span>}
+      {day && (
+        <>
+          <span aria-hidden="true" className="flex min-w-0 items-center gap-1.5">
+            Today
+            {weather && <WeatherIcon sky={weather.sky} background="var(--color-surface)" className="size-4" />}
+            <span className="truncate">
+              {weather?.label} {degrees(day.high)} / {degrees(day.low)}
+            </span>
+          </span>
+          <span className="sr-only">
+            Today in {place}: {weather ? `${weather.label.toLowerCase()}, ` : ""}high {degrees(day.high)}, low{" "}
+            {degrees(day.low)}.
+          </span>
+        </>
+      )}
+    </p>
   );
 }
 
@@ -158,7 +200,9 @@ export function BoardingPassSkeleton() {
     <Ticket
       main={
         <>
-          <span className="h-3 w-8 rounded bg-canvas" />
+          <span className="flex h-4 items-center">
+            <span className="h-3 w-8 rounded bg-canvas" />
+          </span>
           <span className={`${nameClass} flex h-[1.25em] items-center`}>
             <span className="h-[0.6em] w-[7em] max-w-full rounded bg-canvas" />
           </span>
@@ -198,9 +242,11 @@ export function BoardingPassPreview({ name, code, titleTransition }: BoardingPas
         main={
           <>
             {code ? (
-              <span className="font-mono text-xs leading-none tracking-widest text-muted">{code}</span>
+              <span className={eyebrowClass}>{code}</span>
             ) : (
-              <span className="h-3 w-8 rounded bg-canvas" />
+              <span className="flex h-4 items-center">
+                <span className="h-3 w-8 rounded bg-canvas" />
+              </span>
             )}
             {titleTransition ? (
               <ViewTransition name={titleTransition} share="morph" default="none">
