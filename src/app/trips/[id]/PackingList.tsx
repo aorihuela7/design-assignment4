@@ -39,10 +39,10 @@ import {
   type Item,
   type Section,
 } from "@/lib/trips";
+import { useForecast } from "@/lib/useForecast";
 import { useNow } from "@/lib/useNow";
 import { placeLabel } from "@/lib/weather";
 import { AddItemForm } from "./AddItemForm";
-import { useForecast } from "./Forecast";
 import { BACK_TO_MY_TRIPS, ListLoading } from "./ListLoading";
 import { ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "./ItemRow";
 import { ProgressBar } from "./ProgressBar";

@@ -170,9 +170,20 @@ function toDays(data: unknown): Day[] {
 }
 
 // Today and the next 6 days, dated in the destination's time zone.
-export async function fetchForecast(destination: ForecastPlace): Promise<Day[]> {
+// Forecasts on their way, so places asked for twice at once (two cards for one city,
+// or a card and the trip it opens) share one request.
+const loading = new Map<string, Promise<Day[]>>();
+
+export function fetchForecast(destination: ForecastPlace): Promise<Day[]> {
   const cached = cachedForecast(destination);
-  if (cached) return cached;
+  if (cached) return Promise.resolve(cached);
+  const key = forecastKey(destination);
+  const pending = loading.get(key) ?? requestForecast(destination).finally(() => loading.delete(key));
+  loading.set(key, pending);
+  return pending;
+}
+
+async function requestForecast(destination: ForecastPlace): Promise<Day[]> {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.search = new URLSearchParams({
     latitude: String(destination.latitude),

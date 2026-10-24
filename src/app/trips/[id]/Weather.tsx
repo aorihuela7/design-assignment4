@@ -5,10 +5,11 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { TextButton, TextLink } from "@/components/TextLink";
 import type { SaveResult } from "@/lib/storage";
 import { suggestions } from "@/lib/suggestions";
+import type { LoadedForecast } from "@/lib/useForecast";
 import type { Destination, Item, Section, Trip } from "@/lib/trips";
 import { degrees, placeLabel, type Place } from "@/lib/weather";
 import { DestinationSearch } from "./DestinationSearch";
-import { Forecast, type LoadedForecast } from "./Forecast";
+import { Forecast } from "./Forecast";
 import { Suggestions } from "./Suggestions";
 
 type WeatherProps = {

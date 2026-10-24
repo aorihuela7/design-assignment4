@@ -1,51 +1,9 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/Button";
 import { Notice } from "@/components/Notice";
-import {
-  cachedForecast,
-  degrees,
-  describeWeather,
-  fetchForecast,
-  forecastKey,
-  weekday,
-  type Day,
-  type ForecastPlace,
-  type Sky,
-} from "@/lib/weather";
-
-type ForecastState = { status: "loading" } | { status: "failed" } | { status: "ready"; days: Day[] };
-
-export type LoadedForecast = ForecastState & { retry: () => void };
-
-// The destination's forecast: loading, then the days or failed. Retry loads it again.
-// Null when there's no destination. One per page, so everything showing the weather
-// shares it and Open-Meteo is asked once.
-export function useForecast(place: ForecastPlace | null): LoadedForecast | null {
-  const latitude = place?.latitude ?? null;
-  const longitude = place?.longitude ?? null;
-  const timezone = place?.timezone ?? null;
-  const key = latitude === null || longitude === null ? null : forecastKey({ latitude, longitude, timezone });
-  const [attempt, setAttempt] = useState(0);
-  const [loaded, setLoaded] = useState<{ key: string; attempt: number; days: Day[] | null } | null>(null);
-  useEffect(() => {
-    if (key === null || latitude === null || longitude === null) return;
-    let current = true;
-    fetchForecast({ latitude, longitude, timezone }).then(
-      (days) => current && setLoaded({ key, attempt, days }),
-      () => current && setLoaded({ key, attempt, days: null }),
-    );
-    return () => {
-      current = false;
-    };
-  }, [key, attempt, latitude, longitude, timezone]);
-
-  if (key === null || latitude === null || longitude === null) return null;
-  const fresh = loaded?.key === key && loaded.attempt === attempt ? loaded : null;
-  // A forecast already in this tab shows straight away, with no loading rows.
-  const days = fresh ? fresh.days : cachedForecast({ latitude, longitude, timezone });
-  const state: ForecastState = days ? { status: "ready", days } : fresh ? { status: "failed" } : { status: "loading" };
-  return { ...state, retry: () => setAttempt((n) => n + 1) };
-}
+import { WeatherIcon } from "@/components/WeatherIcon";
+import type { ForecastState } from "@/lib/useForecast";
+import { degrees, describeWeather, weekday, type Day } from "@/lib/weather";
 
 type ForecastProps = {
   state: ForecastState;
@@ -167,70 +125,5 @@ function LoadingRow() {
         </td>
       ))}
     </tr>
-  );
-}
-
-// Line icons on the board's grid of 24, in its amber. The rain, drizzle and snow
-// icons share a cloud raised to make room for what falls from it.
-const CLOUD = "M7 19h10.5a4.5 4.5 0 0 0 .4-8.98A6.5 6.5 0 0 0 5.6 11.6 3.75 3.75 0 0 0 7 19z";
-const RAISED = "translate(0 -4)";
-
-function WeatherIcon({ sky }: { sky: Sky }) {
-  const shapes: Record<Sky, ReactNode> = {
-    clear: (
-      <>
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.75 1.75M16.95 16.95l1.75 1.75M5.3 18.7l1.75-1.75M16.95 7.05l1.75-1.75" />
-      </>
-    ),
-    partly: (
-      <>
-        <circle cx="8.5" cy="8.5" r="3" />
-        <path d="M8.5 2.5v1.5M2.5 8.5H4M4.25 4.25l1.05 1.05M12.75 4.25 11.7 5.3" />
-        <path d={CLOUD} transform="translate(2 1) scale(0.9)" fill="var(--color-board)" />
-      </>
-    ),
-    cloudy: <path d={CLOUD} />,
-    fog: <path d="M3 8h18M5 12h14M3 16h18M7 20h10" />,
-    drizzle: (
-      <>
-        <path d={CLOUD} transform={RAISED} />
-        <path d="M8 18v1.5M12 19.5V21M16 18v1.5" />
-      </>
-    ),
-    rain: (
-      <>
-        <path d={CLOUD} transform={RAISED} />
-        <path d="M8.5 17 7 21M12.5 17 11 21M16.5 17 15 21" />
-      </>
-    ),
-    snow: (
-      <>
-        <path d={CLOUD} transform={RAISED} />
-        <circle cx="8" cy="18.5" r="1" fill="currentColor" />
-        <circle cx="12" cy="20.5" r="1" fill="currentColor" />
-        <circle cx="16" cy="18.5" r="1" fill="currentColor" />
-      </>
-    ),
-    storm: (
-      <>
-        <path d={CLOUD} transform={RAISED} />
-        <path d="M12.5 15.5 10 19.5h3l-2 3.5" />
-      </>
-    ),
-  };
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-5 shrink-0"
-    >
-      {shapes[sky]}
-    </svg>
   );
 }
