@@ -370,3 +370,22 @@ Rename and Delete moved into a Trip options menu beside the title.
 - **Page order is a trade-off.** The weather comes first in the page, so on a phone the closed block at the top is the first stop. On wider screens, Tab visits the panel before the list.
 - **A minifier surprise:** Tailwind's `[border-image:none]` came out as an empty `border-image:` in the built CSS, which the browser ignores. `border-image-source: none` works.
 - **The loading state is shaped like the page,** and measured: nothing moves when the trip arrives, at 390px or 1440px.
+
+### Batch 2: destination codes, and pages kept in the background
+
+**What changed.**
+
+- **Destination codes:** a trip with a destination is coded by its city's first 3 letters, without accents (Madrid MAD, Málaga MAL, São Paulo SAO). Without one, it keeps its name's code.
+- **Four bugs fixed,** all from one cause, and all in production too:
+  - A card you'd opened kept its plane at the end of the runway and wouldn't open again.
+  - My trips didn't say "Deleted …".
+  - New trip came back with the last trip's name, and Create trip then did nothing.
+  - A trip opened again kept its last message and didn't put focus on its name.
+
+**What I learned.**
+
+- **Seen failing first.** A script opened and closed every trip, by the Back link and by the browser's back, and compared each card's plane with its count. On the old code it found planes stuck at 100%, cards that wouldn't open again and the missing "Deleted …". Extended, it found the other two bugs. All 23 of its checks pass now.
+- **`useParams()` follows the page on screen, even in a kept page.** While My trips showed, each kept trip page looked for a trip with no id and rendered "Trip not found" out of sight. It tore its list down and built it again on the next visit. That's why its message stayed (it belongs to the page, which stayed) while its form came back empty. The fix is Next's own pattern: the route passes its `params` promise into Suspense, and the list reads it with `use()`.
+- **A message to say once needs a store.** "Deleted …" was read into My trips' state when the page was first made, and a kept page isn't made again. It's now read from a small store each time the page shows (`useSyncExternalStore`), and cleared once the page is hidden. In development React mounts everything twice, so the clear waits a moment, and the second mount cancels it.
+- **Resetting on hide is the general fix.** Next's guide resets passing state in a `useLayoutEffect` cleanup, which runs when the page is hidden. The card's takeoff, the trip page's message and Undo, its forms and its arrival focus all reset that way. Each page starts fresh, as it did before. Kept pages still make going back instant.
+- **Codes that don't move.** Name codes are worked out among all the trips, with or without destinations. Setting or removing one trip's destination never changes another trip's code.

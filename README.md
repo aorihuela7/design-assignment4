@@ -119,6 +119,14 @@ On the `polish` branch, in batches, with [before and after screenshots](docs/pol
   - **The list:** the runway and count, with Clear all ticks beside them once something is ticked; the Add item form, on one row on wider screens; then the sections.
   - **The weather:** everything about the destination, in one place. On wider screens it's a panel beside the list that stays in view as you scroll. On a phone it's one block at the top that opens and closes, showing today's high, low and first tip while closed.
   - **Trip options:** Rename trip and Delete trip, in a menu beside the trip's name.
+- **Destination codes.** A trip that's going somewhere takes its city's first 3 letters, like an airport: MAD for Madrid, MAL for Málaga, SAO for São Paulo. Trips without a destination keep the code their name gives them.
+- **Fixed: pages kept in the background.** Next.js 16 keeps visited pages alive and shows them again as they were left. That broke a few things, in production too:
+  - A card you'd opened kept its plane at the end of the runway and wouldn't open again.
+  - My trips didn't say "Deleted …".
+  - New trip came back with the last trip's name.
+  - A trip opened again showed its last message, and focus didn't go to its name.
+
+  Every visit now starts fresh, as it always did.
 
 ## History: assignment 3
 
