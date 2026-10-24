@@ -25,9 +25,9 @@
 | 6 Where the API call happens | Built in the browser (`3b2cd35`–`9cd9f4e`), plus a summary at the top (`ce3f9c3`, `08608d7`); Ask answers written; waiting for your check of each state |
 | 7 Playwright test, failing first | Done: seen passing, failing with RLS broken, then passing again (`36bbd39`, `b24cbea`) |
 | 8 Review and deploy | Done: `/security-review` findings handled, merged into `main` (PR #1) and live at https://design-assignment4.vercel.app |
-| Polish pass 2 | Done on `polish` (below): batches 1 to 5, for your review on the preview. Not merged |
+| Polish pass 2 | Done (below): batches 1 to 5, merged into `main` with PR #2 at your request |
 
-**Next action:** you check Database › Advisors › Security Advisor (the Supabase MCP isn't connected, so I can't), and run the policy check in the README's Database section (4, 4 and 2). Then review the preview, and decide whether to merge `polish` into `main`.
+**Next action:** you check Database › Advisors › Security Advisor in Supabase; the Supabase MCP wasn't connected, so I couldn't run the advisors after the departure date's migration.
 
 ## Step 0: Context, branch and free tiers
 
@@ -154,7 +154,7 @@
 
 ## Polish pass 2 (branch `polish`)
 
-Production on `main` stays as it is; the work happens on `polish`, pushed for a Vercel preview, and is never merged by me. Screenshots of every screen before and after are in `docs/polish-2/`.
+Production on `main` stayed as it was while the work happened on `polish`, pushed for a Vercel preview; you asked for it to be merged once it was done. Screenshots of every screen before and after are in `docs/polish-2/`.
 
 | Batch | Status |
 |---|---|
@@ -212,3 +212,4 @@ After each batch: build, lint, the contrast check and the end-to-end test, then 
 - 24 Oct, polish pass 2, batch 4: you run the departure date's migration in the SQL Editor; until then, the other four features are pushed and the departure date waits on its own branch.
 - 24 Oct, polish pass 2, batch 5: the Night flight dark theme, built while the departure date's migration waits.
 - 24 Oct, polish pass 2, batch 4: you ran the departure date's migration in the SQL Editor; the file uses `add column if not exists`, so applying it again does nothing.
+- 24 Oct, polish pass 2: you checked the policies (4, 4 and 2) and asked me to merge `polish` into `main`, through PR #2.
