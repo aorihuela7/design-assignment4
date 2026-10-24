@@ -25,9 +25,9 @@
 | 6 Where the API call happens | Built in the browser (`3b2cd35`–`9cd9f4e`), plus a summary at the top (`ce3f9c3`, `08608d7`); Ask answers written; waiting for your check of each state |
 | 7 Playwright test, failing first | Done: seen passing, failing with RLS broken, then passing again (`36bbd39`, `b24cbea`) |
 | 8 Review and deploy | Done: `/security-review` findings handled, merged into `main` (PR #1) and live at https://design-assignment4.vercel.app |
-| Polish pass 2 | In progress on `polish` (below): batch 1 done |
+| Polish pass 2 | In progress on `polish` (below): batches 1 and 2 done |
 
-**Next action:** polish pass 2, batch 2 (the destination code and the takeoff bug).
+**Next action:** your answers to batch 3's three questions (the greeting, the forecast cache, two ideas of mine).
 
 ## Step 0: Context, branch and free tiers
 
@@ -159,8 +159,8 @@ Production on `main` stays as it is; the work happens on `polish`, pushed for a 
 | Batch | Status |
 |---|---|
 | 1 The trip page in two zones: the list, the weather, Trip options | Done |
-| 2 The destination code, and the takeoff bug | Next |
-| 3 A more delightful My trips | Three questions first: the greeting, the forecast cache, two ideas of mine |
+| 2 The destination code, and the takeoff bug | Done, with three more bugs of the same cause |
+| 3 A more delightful My trips | Next: three questions first (the greeting, the forecast cache, two ideas of mine) |
 | 4 Features | You choose which; any database change is shown to you before it runs |
 | 5 Night flight dark theme | Optional, asked after batch 4 |
 
@@ -202,3 +202,5 @@ After each batch: build, lint, the contrast check and the end-to-end test, then 
 - 23 Oct, polish pass 2, batch 1: Clear all ticks is hidden until something is ticked.
 - 23 Oct, polish pass 2, batch 1: only the trip page gets the wider page (two columns); the other pages keep their 900 px column.
 - 23 Oct, polish pass 2, batch 1: on a phone, the weather block starts closed every time.
+- 23 Oct, polish pass 2, batch 2: codes are worked out among all the trips, so setting or removing one trip's destination never changes another trip's code; a city with no letters to use falls back to the name's code.
+- 23 Oct, polish pass 2, batch 2: a page kept in the background starts fresh on every visit, as before: forms empty, no old messages, focus placed on arrival. Unsent text isn't kept between visits (production never kept it either).
