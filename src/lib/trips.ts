@@ -37,6 +37,7 @@ export type Trip = {
   lastPackedAt: string | null; // set when every item is ticked
   promptDismissedAt: string | null; // "Packing for a new trip?" answered
   ticksClearedAt: string | null; // ticks cleared for a new trip
+  departsOn: string | null; // "2026-10-30": the day it leaves, on the person's calendar
   updatedAt: string; // any change to the trip or its items; sorts My trips
 };
 

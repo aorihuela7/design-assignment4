@@ -37,7 +37,7 @@ export function createId() {
 // Rows as Supabase returns them. Trips come in the order they were made (so their
 // codes stay put), and items in the order they were added.
 const ITEM_COLUMNS = "id, name, section, packed, is_new, created_at";
-const TRIP_COLUMNS = `id, name, destination_name, destination_country, latitude, longitude, timezone, last_packed_at, prompt_dismissed_at, ticks_cleared_at, updated_at, items (${ITEM_COLUMNS})`;
+const TRIP_COLUMNS = `id, name, destination_name, destination_country, latitude, longitude, timezone, last_packed_at, prompt_dismissed_at, ticks_cleared_at, departs_on, updated_at, items (${ITEM_COLUMNS})`;
 
 type ItemRow = { id: string; name: string; section: Section; packed: boolean; is_new: boolean; created_at: string };
 
@@ -52,6 +52,7 @@ type TripRow = {
   last_packed_at: string | null;
   prompt_dismissed_at: string | null;
   ticks_cleared_at: string | null;
+  departs_on: string | null;
   updated_at: string;
   items: ItemRow[];
 };
@@ -86,6 +87,7 @@ function toTrip(row: TripRow): Trip {
     lastPackedAt: row.last_packed_at,
     promptDismissedAt: row.prompt_dismissed_at,
     ticksClearedAt: row.ticks_cleared_at,
+    departsOn: row.departs_on,
     updatedAt: row.updated_at,
   };
 }
@@ -331,8 +333,9 @@ export function setDestination(tripId: string, destination: Destination | null) 
   }, false);
 }
 
-// A copy of a trip to pack from again: the name given, the same destination, and
-// every item unticked and no longer New, in the same order. Two writes, the trip and
+// A copy of a trip to pack from again: the name given, the same destination (not its
+// departure date: a copy is for another time), and every item unticked and no longer
+// New, in the same order. Two writes, the trip and
 // then its items; if the items don't save, the copy is deleted again, so no empty
 // trip is left behind.
 export function duplicateTrip(sourceId: string, id: string, name: string) {
@@ -383,6 +386,15 @@ export function duplicateTrip(sourceId: string, id: string, name: string) {
       return "failed";
     }
   }, "failed");
+}
+
+// Sets the day a trip leaves ("2026-10-30"), or clears it with null.
+export function setDeparture(tripId: string, departsOn: string | null) {
+  return enqueue(async (owner) => {
+    const ok = await succeeds(() => owner.db.from("trips").update({ departs_on: departsOn }).eq("id", tripId).throwOnError());
+    if (ok) commit(owner, onTrip(tripId, { departsOn }));
+    return ok;
+  }, false);
 }
 
 // Its items go with it (on delete cascade).

@@ -12,7 +12,7 @@ import { Page } from "@/components/Page";
 import { SectionHeading } from "@/components/SectionHeading";
 import { TextButton } from "@/components/TextLink";
 import { tripCodes } from "@/lib/codes";
-import { formatDay } from "@/lib/dates";
+import { departureLine, formatCalendarDay, formatDay, localDay } from "@/lib/dates";
 import { setFlash } from "@/lib/flash";
 import { prefersReducedMotion } from "@/lib/motion";
 import {
@@ -26,6 +26,7 @@ import {
   removeItem,
   renameTrip,
   restoreItem,
+  setDeparture,
   setDestination,
   setPacked,
   useStorage,
@@ -50,7 +51,7 @@ import { BACK_TO_MY_TRIPS, ListLoading } from "./ListLoading";
 import { EditItem } from "./EditItem";
 import { editButtonId, ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "./ItemRow";
 import { ProgressBar } from "./ProgressBar";
-import { DeleteConfirm, RenameForm, TripOptions } from "./TripActions";
+import { DeleteConfirm, DepartureForm, RenameForm, TripOptions } from "./TripActions";
 import { Weather, type WeatherHandle } from "./Weather";
 
 const COUNT_ID = "packed-count";
@@ -135,7 +136,7 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
     document.getElementById(editButtonId(itemId))?.focus();
   });
   // What Trip options opened: Rename and Delete show in place, above the list.
-  const [options, setOptions] = useState<"idle" | "rename" | "delete">("idle");
+  const [options, setOptions] = useState<"idle" | "rename" | "departure" | "delete">("idle");
   const optionsButton = useRef<HTMLButtonElement>(null);
   // Set while Duplicate trip saves, so a second press doesn't make a second copy.
   const duplicating = useRef(false);
@@ -330,6 +331,17 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
     setOptions("idle");
     requestAnimationFrame(() => optionsButton.current?.focus());
   };
+  const saveDeparture = async (departsOn: string | null) => {
+    if (departsOn === trip.departsOn) {
+      closeOptions();
+      return true;
+    }
+    const saved = await setDeparture(tripId, departsOn);
+    if (!saved) return false;
+    setAnnouncement(departsOn ? `Departs ${formatCalendarDay(departsOn)}` : "Departure date removed");
+    closeOptions();
+    return true;
+  };
   const rename = async (name: string) => {
     const result = await renameTrip(tripId, name);
     if (result === "saved") setAnnouncement(`Renamed to ${name}`);
@@ -381,10 +393,13 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
       wide
       code={tripCodes(storage.trips).get(trip.id)}
       titleTransition={tripTitleTransition(trip.id)}
+      // Only after mount: "in 7 days" depends on today, on the person's calendar.
+      detail={trip.departsOn && now !== null ? departureLine(trip.departsOn, now) : undefined}
       titleAction={
         <TripOptions
           buttonRef={optionsButton}
           onRename={() => setOptions("rename")}
+          onDeparture={() => setOptions("departure")}
           onDuplicate={duplicate}
           onDelete={() => setOptions("delete")}
         />
@@ -401,6 +416,9 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
           }}
           onCancel={closeOptions}
         />
+      )}
+      {options === "departure" && now !== null && (
+        <DepartureForm current={trip.departsOn} today={localDay(now)} onSave={saveDeparture} onCancel={closeOptions} />
       )}
       {options === "delete" && <DeleteConfirm trip={trip} onDelete={deleteAndLeave} onCancel={closeOptions} />}
 

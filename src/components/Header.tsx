@@ -22,6 +22,8 @@ type HeaderProps = {
   wide?: boolean;
   // Beside the title, like a trip's options menu.
   titleAction?: ReactNode;
+  // A line under the title, like a trip's departure.
+  detail?: string;
 };
 
 // Amber caps on the band; the accent stays for each page's primary action.
@@ -37,6 +39,7 @@ export function Header({
   signedOut = false,
   wide = false,
   titleAction,
+  detail,
 }: HeaderProps) {
   return (
     <header data-surface="board" className="bg-board text-amber">
@@ -87,6 +90,7 @@ export function Header({
           </TitleTransition>
           {titleAction}
         </div>
+        {detail && <p className="mt-1 font-mono text-xs uppercase tracking-widest">{detail}</p>}
       </div>
     </header>
   );

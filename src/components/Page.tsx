@@ -18,6 +18,8 @@ type PageProps = {
   wide?: boolean;
   // Shown on the band beside the title, like a trip's options menu.
   titleAction?: ReactNode;
+  // A line on the band under the title, like a trip's departure.
+  detail?: string;
   children: ReactNode;
 };
 
@@ -30,6 +32,7 @@ export function Page({
   signedOut,
   wide = false,
   titleAction,
+  detail,
   children,
 }: PageProps) {
   return (
@@ -44,6 +47,7 @@ export function Page({
         signedOut={signedOut}
         wide={wide}
         titleAction={titleAction}
+        detail={detail}
       />
       {/* Moving to another page fades the content out and the new content in. */}
       <ViewTransition enter="page-in" exit="page-out" default="none">
