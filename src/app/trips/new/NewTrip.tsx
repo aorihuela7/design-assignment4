@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, type FormEvent } from "react";
+import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { BoardingPassPreview } from "@/components/BoardingPassCard";
 import { Button, ButtonLink } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -30,6 +30,17 @@ export function NewTrip() {
   // Set on Create trip, so the preview's title can morph into the new page's title.
   // (An id can't be made during prerendering.)
   const [createdId, setCreatedId] = useState<string | null>(null);
+  // Each visit starts empty: Next keeps New trip in the background (React's Activity),
+  // and would show the last trip's name, or last time's error, again.
+  useLayoutEffect(
+    () => () => {
+      setName("");
+      setAttempted(false);
+      setFailed(false);
+      setCreatedId(null);
+    },
+    [],
+  );
 
   // Once saved, the new trip is among them until the page leaves: left out, so it
   // doesn't clash with itself.
