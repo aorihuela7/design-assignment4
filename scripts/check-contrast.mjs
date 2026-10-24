@@ -1,23 +1,34 @@
-// Checks WCAG contrast for every text/background and UI pair the app uses.
-// Reads the colors from src/app/globals.css so the check can't drift from the tokens.
+// Checks WCAG contrast for every text/background and UI pair the app uses, in both
+// themes: the light one and "Night flight", for devices set to dark. Reads the colors
+// from src/app/globals.css so the check can't drift from the tokens.
 // Usage: npm run check:contrast
 
 import { readFileSync } from "node:fs";
 
 const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
-const colors = Object.fromEntries(
-  [...css.matchAll(/--color-([a-z-]+):\s*(#[0-9a-f]{6})/gi)].map(([, name, hex]) => [name, hex]),
-);
+const tokens = (text) =>
+  Object.fromEntries([...text.matchAll(/--color-([a-z-]+):\s*(#[0-9a-f]{6})/gi)].map(([, name, hex]) => [name, hex]));
+
+// Light: the @theme tokens, which come first. Dark: the same, with the overrides in
+// the prefers-color-scheme: dark block's :root.
+const darkAt = css.indexOf("@media (prefers-color-scheme: dark)");
+if (darkAt < 0) throw new Error("No dark theme in globals.css");
+const rootOpen = css.indexOf("{", css.indexOf(":root", darkAt));
+const light = tokens(css.slice(0, darkAt));
+const dark = { ...light, ...tokens(css.slice(rootOpen, css.indexOf("}", rootOpen))) };
 
 // Tints used in the app, as blends of two tokens: [name, top color, opacity, bottom color].
 const blends = [["stub", "canvas", 0.6, "surface"]]; // boarding pass stub: bg-canvas/60 on a card
-for (const [name, top, alpha, bottom] of blends) {
-  const mix = [1, 3, 5].map((i) => {
-    const a = parseInt(colors[top].slice(i, i + 2), 16);
-    const b = parseInt(colors[bottom].slice(i, i + 2), 16);
-    return Math.round(a * alpha + b * (1 - alpha)).toString(16).padStart(2, "0");
-  });
-  colors[name] = `#${mix.join("")}`;
+function addBlends(colors) {
+  for (const [name, top, alpha, bottom] of blends) {
+    const mix = [1, 3, 5].map((i) => {
+      const a = parseInt(colors[top].slice(i, i + 2), 16);
+      const b = parseInt(colors[bottom].slice(i, i + 2), 16);
+      return Math.round(a * alpha + b * (1 - alpha)).toString(16).padStart(2, "0");
+    });
+    colors[name] = `#${mix.join("")}`;
+  }
+  return colors;
 }
 
 const TEXT = 4.5; // normal text
@@ -39,13 +50,13 @@ const pairs = [
   ["Text", "white", "accent", TEXT, "Primary button"],
   ["Text", "white", "accent-hover", TEXT, "Primary button, hover"],
   ["Text", "white", "accent-pressed", TEXT, "Primary button, pressed"],
-  ["Text", "white", "ink", TEXT, "Delete trip (confirm) button"],
-  ["Text", "white", "muted", TEXT, "Delete trip (confirm) button, hover"],
+  ["Text", "surface", "ink", TEXT, "Delete trip (confirm) button"],
+  ["Text", "surface", "muted", TEXT, "Delete trip (confirm) button, hover"],
   ["Text", "white", "board", TEXT, "Delete trip (confirm) button, pressed; forecast board: Next 7 days, column headings"],
   ["Large", "amber", "board", LARGE, "Header h1 (page name)"],
   ["Large", "ink", "surface", LARGE, "List names on cards, form headings"],
-  ["UI", "board", "canvas", UI, "Focus ring on the page"],
-  ["UI", "board", "surface", UI, "Focus ring on cards and fields, and in the Trip options menu"],
+  ["UI", "ink", "canvas", UI, "Focus ring on the page"],
+  ["UI", "ink", "surface", UI, "Focus ring on cards and fields, and in the Trip options menu"],
   ["UI", "amber", "board", UI, "Focus ring on the Departures band"],
   ["UI", "muted", "surface", UI, "Text field and select border"],
   ["UI", "ink", "surface", UI, "Invalid field border, checkbox border, secondary button border, error, notice and warning icons"],
@@ -74,15 +85,21 @@ function ratio(a, b) {
 }
 
 let failed = false;
-console.log("| Result | Ratio | Needs | Kind | Pair | Used for |");
-console.log("|---|---|---|---|---|---|");
-for (const [kind, fg, bg, min, where] of pairs) {
-  if (!colors[fg] || !colors[bg]) throw new Error(`Missing token: ${colors[fg] ? bg : fg}`);
-  const r = ratio(colors[fg], colors[bg]);
-  const status = min === INFO ? "info" : r >= min ? "pass" : "FAIL";
-  if (status === "FAIL") failed = true;
-  const need = min === INFO ? "–" : `${min}:1`;
-  console.log(`| ${status} | ${r.toFixed(2)}:1 | ${need} | ${kind} | ${fg} on ${bg} | ${where} |`);
+for (const [theme, colors] of [
+  ["Light", addBlends(light)],
+  ["Night flight (dark)", addBlends(dark)],
+]) {
+  console.log(`\n## ${theme}\n`);
+  console.log("| Result | Ratio | Needs | Kind | Pair | Used for |");
+  console.log("|---|---|---|---|---|---|");
+  for (const [kind, fg, bg, min, where] of pairs) {
+    if (!colors[fg] || !colors[bg]) throw new Error(`Missing token: ${colors[fg] ? bg : fg}`);
+    const r = ratio(colors[fg], colors[bg]);
+    const status = min === INFO ? "info" : r >= min ? "pass" : "FAIL";
+    if (status === "FAIL") failed = true;
+    const need = min === INFO ? "–" : `${min}:1`;
+    console.log(`| ${status} | ${r.toFixed(2)}:1 | ${need} | ${kind} | ${fg} on ${bg} | ${where} |`);
+  }
 }
 
 process.exit(failed ? 1 : 0);

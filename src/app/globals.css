@@ -150,6 +150,23 @@
 }
 
 @layer base {
+  /* "Night flight": the same theme when the device asks for dark. The band, its amber
+     and the accent stay; the page and its cards go dark, ink turns light, and every
+     pair is checked in both themes (scripts/check-contrast.mjs). */
+  :root {
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-canvas: #0a111d;
+      --color-surface: #142033;
+      --color-ink: #e7edf4;
+      --color-muted: #a2b2c6;
+      --color-line: #34465e;
+    }
+  }
+
   body {
     background-color: var(--color-canvas);
     color: var(--color-ink);
