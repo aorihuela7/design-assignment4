@@ -411,9 +411,10 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
 
           {groupBySection(rows).map((group) => (
             <section key={group.section} aria-labelledby={`section-${group.section}`} className="flex flex-col gap-2">
-              <SectionHeading id={`section-${group.section}`}>
-                {group.label}
-              </SectionHeading>
+              <div className="flex items-baseline justify-between gap-3">
+                <SectionHeading id={`section-${group.section}`}>{group.label}</SectionHeading>
+                <SectionCount items={trip.items.filter((item) => item.section === group.section)} />
+              </div>
               <Card padded={false}>
                 <ul className="divide-y divide-line">
                   {group.items.map((item) =>
@@ -442,5 +443,17 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
         </div>
       </div>
     </Page>
+  );
+}
+
+// How much of a section is packed, beside its heading. Only items on the list count,
+// not one just removed and waiting for Undo.
+function SectionCount({ items }: { items: Item[] }) {
+  if (items.length === 0) return null;
+  const packed = items.filter((item) => item.packed).length;
+  return (
+    <p className="shrink-0 font-mono text-xs uppercase tracking-wider text-muted">
+      {packed} of {items.length} packed
+    </p>
   );
 }
