@@ -24,4 +24,4 @@ Every screen before and after the second polish pass (branch `polish`), at 390 p
 
 ## Found while taking them
 
-After a trip is deleted, My trips doesn't say "Deleted …" (`before/29-my-trips-after-delete`). My trips was kept alive in the background from the earlier visit, so it never reads the message (Next.js keeps visited pages in React's `<Activity>`). Batch 2 fixes it, along with the takeoff bug.
+After a trip is deleted, My trips doesn't say "Deleted …" (`before/29-my-trips-after-delete`). My trips was kept alive in the background from the earlier visit, so it never reads the message (Next.js keeps visited pages in React's `<Activity>`). Fixed in batch 2 (`after/29-my-trips-after-delete`), along with the takeoff bug and the others the same cause led to (see `docs/learning.md`).
