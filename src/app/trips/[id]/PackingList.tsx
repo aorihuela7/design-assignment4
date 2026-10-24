@@ -47,7 +47,7 @@ import { BACK_TO_MY_TRIPS, ListLoading } from "./ListLoading";
 import { ItemRow, RemovedRow, UNDO_ROW_ID, undoHoldProps, type UndoHold } from "./ItemRow";
 import { ProgressBar } from "./ProgressBar";
 import { DeleteConfirm, RenameForm, TripOptions } from "./TripActions";
-import { Weather } from "./Weather";
+import { Weather, type WeatherHandle } from "./Weather";
 
 const COUNT_ID = "packed-count";
 const UNDO_BAR_ID = "undo-bar";
@@ -129,20 +129,26 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
     if (tabTitle) document.title = `${tabTitle} · Pack Again`;
   }, [tabTitle]);
 
-  // Opens ready to type when the list is empty, or when asked with ?add=1
-  // ("Forgot something? Add it" on My trips).
-  const wantsAdd = useSearchParams().get("add") === "1";
+  // Opens ready to type when the list is empty, or when asked with ?add=1 ("Forgot
+  // something? Add it" on My trips); in the destination search when asked with
+  // ?destination=1 ("Add a destination for weather tips") and there's none yet.
+  const searchParams = useSearchParams();
+  const wantsAdd = searchParams.get("add") === "1";
+  const wantsDestination = searchParams.get("destination") === "1";
   const isEmpty = trip?.items.length === 0;
   const hasTrip = Boolean(trip);
+  const hasDestination = Boolean(trip?.destination);
+  const weather = useRef<WeatherHandle>(null);
   // Otherwise focus starts on the list name, so the next Tab reaches "Back to My trips".
   // Only on arrival: later changes (like removing the last item) manage focus themselves.
   const arrived = useRef(false);
   useEffect(() => {
     if (!hasTrip || arrived.current) return;
     arrived.current = true;
-    if (isEmpty || wantsAdd) inputRef.current?.focus();
+    if (wantsDestination && !hasDestination) weather.current?.openSearch();
+    else if (isEmpty || wantsAdd) inputRef.current?.focus();
     else document.getElementById(PAGE_TITLE_ID)?.focus({ preventScroll: true });
-  }, [hasTrip, isEmpty, wantsAdd]);
+  }, [hasTrip, isEmpty, wantsAdd, wantsDestination, hasDestination]);
 
   // Next keeps a visited trip in the background (React's Activity) and shows it again
   // as it was. Each visit starts fresh instead: no message or Undo from last time, no
@@ -330,7 +336,7 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
         {/* Scrolls inside itself if it's taller than the window; the padding keeps focus
             rings clear of its edges. */}
         <div className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:-m-1 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:p-1">
-          <Weather trip={trip} forecast={forecast} onSetDestination={saveDestination} onAdd={add} />
+          <Weather ref={weather} trip={trip} forecast={forecast} onSetDestination={saveDestination} onAdd={add} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-6 lg:col-start-1 lg:row-start-1">

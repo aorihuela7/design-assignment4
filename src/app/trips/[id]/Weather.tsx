@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { Card } from "@/components/Card";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { SectionHeading } from "@/components/SectionHeading";
@@ -20,7 +20,11 @@ type WeatherProps = {
   onSetDestination: (destination: Destination | null) => Promise<boolean>;
   // Adds a suggestion the way the Add item form adds an item.
   onAdd: (name: string, section: Section) => Promise<SaveResult>;
+  ref?: Ref<WeatherHandle>;
 };
+
+// For the page: "Add a destination for weather tips" on My trips arrives here.
+export type WeatherHandle = { openSearch: () => void };
 
 export const WEATHER_HEADING_ID = "weather-heading";
 const DETAILS_ID = "weather-details";
@@ -30,7 +34,7 @@ const DETAILS_ID = "weather-details";
 // for them and the credit to Open-Meteo. Without a destination, an invitation to add
 // one. On a phone it's one block at the top that opens and closes; wider, it's always
 // open, beside the list.
-export function Weather({ trip, forecast, onSetDestination, onAdd }: WeatherProps) {
+export function Weather({ trip, forecast, onSetDestination, onAdd, ref }: WeatherProps) {
   const { destination } = trip;
   const [changing, setChanging] = useState(false);
   // Once the person asks for the search (Change, Remove), its field takes focus.
@@ -42,6 +46,31 @@ export function Weather({ trip, forecast, onSetDestination, onAdd }: WeatherProp
   const heading = useRef<HTMLHeadingElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const changeButton = useRef<HTMLButtonElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  // Set while the zone opens for the search, so its field takes focus once it shows.
+  const focusOnOpen = useRef(false);
+
+  // Opens the zone with focus in the Destination field. Wider screens always show it;
+  // on a phone it opens first, and the field takes focus once it's on screen.
+  useImperativeHandle(
+    ref,
+    () => ({
+      openSearch() {
+        if (searchInput.current?.offsetParent) {
+          searchInput.current.focus();
+          return;
+        }
+        focusOnOpen.current = true;
+        setExpanded(true);
+      },
+    }),
+    [],
+  );
+  useLayoutEffect(() => {
+    if (!expanded || !focusOnOpen.current) return;
+    focusOnOpen.current = false;
+    searchInput.current?.focus();
+  }, [expanded]);
 
   // Next keeps a visited page in the background (React's Activity). Coming back, the
   // zone is closed, out of any change and without last time's error, as on a fresh visit.
@@ -137,6 +166,7 @@ export function Weather({ trip, forecast, onSetDestination, onAdd }: WeatherProp
             <DestinationSearch
               initialQuery={changing ? destination?.name : undefined}
               autoFocus={focusSearch}
+              inputRef={searchInput}
               onChoose={choose}
               onCancel={destination ? cancel : undefined}
             />

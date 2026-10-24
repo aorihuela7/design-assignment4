@@ -26,6 +26,8 @@ type BoardingPassCardProps = {
   href: string;
   // Second link, shown with new items: opens the list ready to add one.
   forgotHref?: string;
+  // Without a destination, a link to add one in its place.
+  destinationHref?: string;
   // Shared with the trip page's title, which this name morphs into on opening.
   titleTransition: string;
 };
@@ -58,6 +60,7 @@ export function BoardingPassCard({
   newCount = 0,
   href,
   forgotHref,
+  destinationHref,
   titleTransition,
 }: BoardingPassCardProps) {
   const router = useRouter();
@@ -100,6 +103,14 @@ export function BoardingPassCard({
             </h2>
           </ViewTransition>
           {place && today && <TodayWeather place={place} today={today} />}
+          {!place && destinationHref && (
+            // Where the weather would be. Above the card-wide link, like Forgot something.
+            <p className="flex h-5 items-center">
+              <TextLink href={destinationHref} inline className="z-20 font-mono text-xs uppercase tracking-wider">
+                Add a destination<span className="sr-only"> to {name}</span> for weather tips
+              </TextLink>
+            </p>
+          )}
           {newCount > 0 && (
             <div className="mt-1 flex flex-col items-start">
               <NewBadge stamp={stampBadge}>{`${newCount} added for next trip`}</NewBadge>
@@ -205,6 +216,9 @@ export function BoardingPassSkeleton() {
           </span>
           <span className={`${nameClass} flex h-[1.25em] items-center`}>
             <span className="h-[0.6em] w-[7em] max-w-full rounded bg-canvas" />
+          </span>
+          <span className="flex h-5 items-center">
+            <span className="h-3 w-48 max-w-full rounded bg-canvas" />
           </span>
         </>
       }

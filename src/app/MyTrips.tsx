@@ -134,6 +134,7 @@ function TripCard({ trip, code }: { trip: Trip; code: string }) {
       newCount={trip.items.filter((item) => item.isNew).length}
       href={`/trips/${trip.id}`}
       forgotHref={`/trips/${trip.id}?add=1`}
+      destinationHref={`/trips/${trip.id}?destination=1`}
       titleTransition={tripTitleTransition(trip.id)}
     />
   );
