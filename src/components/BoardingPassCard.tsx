@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, ViewTransition, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, ViewTransition, type MouseEvent, type ReactNode } from "react";
 import { formatDay } from "@/lib/dates";
 import { prefersReducedMotion } from "@/lib/motion";
 import { Card, CardLink } from "./Card";
@@ -54,6 +54,10 @@ export function BoardingPassCard({
 }: BoardingPassCardProps) {
   const router = useRouter();
   const [departing, setDeparting] = useState(false);
+  // Next keeps My trips in the background while a trip is open (React's Activity).
+  // Hidden, the plane is back on the ground, so coming back it shows the progress
+  // and the card opens again.
+  useLayoutEffect(() => () => setDeparting(false), []);
   const stampBadge = newCount > 0 && shownNewCounts.get(href) !== newCount;
   useEffect(() => {
     shownNewCounts.set(href, newCount);
