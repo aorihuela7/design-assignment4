@@ -116,6 +116,9 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
   const [justPackedId, setJustPackedId] = useState<string | null>(null);
   // Ticking the last item: the bar's plane takes off, then All packed fades in.
   const [takeoff, setTakeoff] = useState<"flying" | "landed" | null>(null);
+  // What "Hide packed" hides: the items packed when it was pressed. Ones ticked after
+  // stay in view, struck through, so nothing moves under the next tap.
+  const [hiddenIds, setHiddenIds] = useState<Set<string> | null>(null);
   // What Trip options opened: Rename and Delete show in place, above the list.
   const [options, setOptions] = useState<"idle" | "rename" | "delete">("idle");
   const optionsButton = useRef<HTMLButtonElement>(null);
@@ -160,6 +163,7 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
       setJustPackedId(null);
       setTakeoff(null);
       setOptions("idle");
+      setHiddenIds(null);
       arrived.current = false;
     },
     [],
@@ -253,13 +257,25 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
   const focusCount = () => requestAnimationFrame(() => document.getElementById(COUNT_ID)?.focus());
   const clear = () => {
     clearTicks(tripId).then(checkSaved);
+    setHiddenIds(null);
     setAnnouncement("Ticks cleared");
     focusCount();
+  };
+  const togglePacked = () => {
+    if (hiddenIds) {
+      setHiddenIds(null);
+      setAnnouncement("Packed items shown");
+      return;
+    }
+    const packedIds = trip.items.filter((item) => item.packed).map((item) => item.id);
+    setHiddenIds(new Set(packedIds));
+    setAnnouncement(`${packedIds.length} packed ${packedIds.length === 1 ? "item" : "items"} hidden`);
   };
   // Both answers to "Packing for a new trip?" record the answer, so it isn't asked again
   // until the next full pack.
   const answer = (clearAll: boolean) => {
     answerNewTrip(tripId, clearAll).then(checkSaved);
+    if (clearAll) setHiddenIds(null);
     if (clearAll) setAnnouncement("Ticks cleared");
     focusCount();
   };
@@ -294,10 +310,11 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
   // The removed item stays on screen as a placeholder, in its old position (unless
   // the removal didn't save and it's back).
   const pending = feedback?.undo;
-  const rows =
+  const allRows =
     pending && !trip.items.some((item) => item.id === pending.item.id)
       ? [...trip.items.slice(0, pending.index), pending.item, ...trip.items.slice(pending.index)]
       : trip.items;
+  const rows = hiddenIds ? allRows.filter((item) => !hiddenIds.has(item.id)) : allRows;
 
   return (
     // Codes come from all trips in storage order, as on My trips, so they match the card.
@@ -352,6 +369,8 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
               inputRef.current?.focus({ preventScroll: true });
             }}
             onClearTicks={clear}
+            hidingPacked={hiddenIds !== null}
+            onTogglePacked={togglePacked}
             message={
               feedback?.text && (
                 <>
@@ -406,6 +425,11 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
           {trip.items.length === 0 && !pending && (
             <EmptyState>
               <p>Nothing here yet. Add your first item.</p>
+            </EmptyState>
+          )}
+          {trip.items.length > 0 && rows.length === 0 && (
+            <EmptyState>
+              <p>Everything here is packed and hidden. Show packed to see it.</p>
             </EmptyState>
           )}
 

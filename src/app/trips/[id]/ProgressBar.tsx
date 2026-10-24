@@ -16,6 +16,9 @@ type ProgressBarProps = {
   onForgot: () => void;
   // Shown beside the runway once something is ticked.
   onClearTicks: () => void;
+  // Whether packed items are hidden, and the button that hides or shows them.
+  hidingPacked: boolean;
+  onTogglePacked: () => void;
   // Latest change ("Added Hat to Clothes"), shown on screen and read politely.
   message: ReactNode;
 };
@@ -32,6 +35,8 @@ export function ProgressBar({
   takeoff,
   onForgot,
   onClearTicks,
+  hidingPacked,
+  onTogglePacked,
   message,
 }: ProgressBarProps) {
   // Stuck to the top while the list scrolls under it: then its background and rule
@@ -86,8 +91,9 @@ export function ProgressBar({
           </TextButton>
         )}
       </div>
-      {/* The latest change; once all packed and nothing new to say, the way to add what was forgotten. */}
-      <div className="flex min-h-6 items-center">
+      {/* The latest change; once all packed and nothing new to say, the way to add what was
+          forgotten. At the right, Hide packed while packing is under way. */}
+      <div className="flex min-h-6 items-center gap-x-4">
         <div aria-live="polite" className="flex min-w-0 items-center gap-x-3 text-ink">
           {message}
         </div>
@@ -95,6 +101,15 @@ export function ProgressBar({
         {allPacked && !message && (
           <TextButton inline onClick={onForgot}>
             Forgot something? Add it
+          </TextButton>
+        )}
+        {(hidingPacked || (packed > 0 && !allPacked)) && (
+          <TextButton
+            inline
+            onClick={onTogglePacked}
+            className="ml-auto shrink-0 font-mono text-xs uppercase tracking-wider"
+          >
+            {hidingPacked ? "Show packed" : "Hide packed"}
           </TextButton>
         )}
       </div>
