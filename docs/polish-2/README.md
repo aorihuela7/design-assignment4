@@ -18,6 +18,8 @@ Every screen before and after the second polish pass (branch `polish`), at 390 p
 
 - `34-trip-options-menu`: the Trip options menu, open (batch 1).
 - `35-trip-from-add-destination`: a trip opened from a card's "Add a destination for weather tips", with focus in Destination (batch 3). Taken by arriving at each width, since resizing after arriving would hide the phone's zone.
+- `36-trip-edit-item`: an item open for editing in its row (batch 4).
+- `37-trip-packed-hidden`: packed items hidden from the packing bar (batch 4).
 
 The test accounts have no first name in Clerk, so the greeting on My trips says "Good evening." with no name.
 
