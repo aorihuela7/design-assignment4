@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useState, ViewTransition, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, ViewTransition, type MouseEvent, type ReactNode } from "react";
 import { formatDay } from "@/lib/dates";
 import { prefersReducedMotion } from "@/lib/motion";
 import type { ForecastState } from "@/lib/useForecast";
@@ -133,13 +133,49 @@ export function BoardingPassCard({
               Last packed {formatDay(lastPackedAt)}
             </p>
           )}
-          {/* Visual cue only; the list name is the link's accessible name. */}
-          <span aria-hidden="true" className="self-end font-mono text-xs uppercase tracking-wider text-ink">
-            Open →
-          </span>
+          <div className="flex items-end justify-between gap-3">
+            <StatusStamp id={href} status={statusOf(packed, total)} />
+            {/* Visual cue only; the list name is the link's accessible name. */}
+            <span aria-hidden="true" className="font-mono text-xs uppercase tracking-wider text-ink">
+              Open →
+            </span>
+          </div>
         </>
       }
     />
+  );
+}
+
+// Where packing has got to, in words: never 100% until every item is ticked.
+function statusOf(packed: number, total: number) {
+  if (total > 0 && packed >= total) return "Packed";
+  if (packed === 0) return "Not started";
+  return `Boarding ${Math.max(1, Math.floor((packed / total) * 100))}%`;
+}
+
+// Statuses already shown in this tab, by card link. Memory only, reset on reload.
+const shownStatuses = new Map<string, string>();
+
+// Inked on the stub like a passport stamp. It presses on again only when the trip's
+// status has changed since the card was last seen (packing got under way, or finished),
+// never on the first sight or with reduced motion. The count beside the runway says the
+// same for screen readers.
+function StatusStamp({ id, status }: { id: string; status: string }) {
+  const stamp = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const before = shownStatuses.get(id);
+    shownStatuses.set(id, status);
+    if (before === undefined || before === status || prefersReducedMotion()) return;
+    stamp.current?.animate([{ opacity: 0, scale: "1.15", rotate: "-9deg" }], { duration: 200, easing: "ease-out" });
+  }, [id, status]);
+  return (
+    <span
+      ref={stamp}
+      aria-hidden="true"
+      className="-rotate-3 border-[3px] border-double border-ink px-1.5 py-1 font-mono text-xs leading-none uppercase tracking-wider text-ink"
+    >
+      {status}
+    </span>
   );
 }
 
@@ -228,9 +264,13 @@ export function BoardingPassSkeleton() {
             <span className="flex-1 border-t-2 border-dashed border-line" />
             <span className="h-3 w-28 rounded bg-line/60" />
           </div>
-          <span className="flex h-4 items-center self-end">
-            <span className="h-3 w-14 rounded bg-line/60" />
-          </span>
+          {/* As tall as the stamp's row. */}
+          <div className="flex h-[26px] items-end justify-between">
+            <span className="h-5 w-24 rounded bg-line/60" />
+            <span className="flex h-4 items-center">
+              <span className="h-3 w-14 rounded bg-line/60" />
+            </span>
+          </div>
         </>
       }
     />
