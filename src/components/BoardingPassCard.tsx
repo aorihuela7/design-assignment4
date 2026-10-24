@@ -7,6 +7,7 @@ import { prefersReducedMotion } from "@/lib/motion";
 import type { ForecastState } from "@/lib/useForecast";
 import { degrees, describeWeather } from "@/lib/weather";
 import { Card, CardLink } from "./Card";
+import { FlipCode } from "./FlipCode";
 import { NewBadge } from "./NewBadge";
 import { RunwayProgress } from "./RunwayProgress";
 import { TextLink } from "./TextLink";
@@ -92,7 +93,7 @@ export function BoardingPassCard({
         <>
           <p className={eyebrowClass}>
             {/* Decorative ticket detail; the list name is the text that matters. */}
-            <span aria-hidden="true">{code}</span>
+            <FlipCode code={code} />
             {place && <span className="uppercase">{place}</span>}
           </p>
           <ViewTransition name={titleTransition} share="morph" default="none">

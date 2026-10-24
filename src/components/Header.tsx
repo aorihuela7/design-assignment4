@@ -1,6 +1,7 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { ViewTransition, type ReactNode } from "react";
+import { FlipCode } from "./FlipCode";
 
 export const PAGE_TITLE_ID = "page-title";
 
@@ -45,7 +46,7 @@ export function Header({
             Pack Again
           </Link>
           <div className="ml-auto flex items-center gap-4">
-            {code && <span aria-hidden="true">{code}</span>}
+            {code && <FlipCode code={code} />}
             {signedOut ? (
               <>
                 <Link href="/sign-in" className={`${bandLink} underline hover:decoration-2`}>
