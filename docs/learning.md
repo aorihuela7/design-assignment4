@@ -425,3 +425,14 @@ Rename and Delete moved into a Trip options menu beside the title.
 - **Two writes and no transaction.** Supabase's client can't group writes without a function in the database, which would have been a database change. So Duplicate inserts the trip, then its items, and deletes the copy again if the items fail.
 - **Adding buttons costs words their room.** With Edit beside Remove, 6 of a trip's 15 names wrapped on a phone. Narrower row buttons (still 44px targets) brought it to 2.
 - **Checking the database without its keys.** The test browser replayed one of the app's own Supabase requests, asking for the new column. Postgres answered 42703 (undefined column), so the migration hadn't run yet. The departure date's commits wait on a branch of their own (`departure`, not pushed) until it does.
+
+### Batch 5: Night flight, a dark theme
+
+**What changed.** With the device set to dark, the page and its cards go a deep navy and ink turns light. The band, its amber and the accent stay as they are, so it's still the Departures board.
+
+**What I learned.**
+
+- **Tokens make a theme one block of CSS.** Tailwind's colors are CSS variables, so the dark theme only overrides five of them (canvas, surface, ink, muted, line) under `prefers-color-scheme: dark`. Clerk's forms follow too, since their appearance already used the same variables.
+- **Names that assume a light page break.** The focus ring was the band's navy, which would vanish on a dark page; it's ink now, a near-identical navy in the light theme and light at night. Delete trip's solid ink button had white text, which at night would be white on light; it takes the card's color instead. Clerk's Continue keeps white explicitly, since it sits on the accent.
+- **A check that reads one theme can't check two.** The contrast script collected every `--color-` value into one list, so dark overrides with the same names would have silently replaced the light ones. It now reads the light tokens and the dark overrides separately and runs every pair for each. All 24 required pairs pass in both; the lowest is white on the accent, 5.76:1 in both.
+- **Screens in dark, the same way as in light.** The screenshot script's browser takes `colorScheme: "dark"`, so `after-dark/` repeats every screen from the same starting point.

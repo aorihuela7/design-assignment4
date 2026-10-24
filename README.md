@@ -81,7 +81,7 @@ You need Node.js 20.9 or newer, a Clerk application and a Supabase project, both
 
 Two checks:
 
-- `npm run check:contrast` checks the contrast of every color pair the app uses.
+- `npm run check:contrast` checks the contrast of every color pair the app uses, in the light theme and in Night flight.
 - `npm run test:e2e` signs in the two test users and checks that neither sees the other's trips. It starts its own dev server on port 3100, or the port in `E2E_PORT`. Next.js allows one dev server per project, so if yours is running, point the test at it instead: `E2E_BASE_URL=http://localhost:3000 npm run test:e2e`.
 
 ## What it remembers
@@ -138,6 +138,7 @@ On the `polish` branch, in batches, with [before and after screenshots](docs/pol
   - **Edit,** beside Remove: renames an item or moves it to another section, in its row, with Add item's checks and messages.
   - **Duplicate trip,** in Trip options: a copy to pack from again, everything unticked, with a free name ("Beach weekend copy").
   - **All packed on a phone** now fits one line beside Clear all ticks, so the bar keeps its height and the list doesn't jump as the last item is ticked.
+- **"Night flight," a dark theme** for devices set to dark: the same navy band, amber and accent, with a dark page and cards. Every color pair is checked in both themes, and [`docs/polish-2/after-dark/`](docs/polish-2/after-dark/) shows every screen in it.
 
 ## History: assignment 3
 

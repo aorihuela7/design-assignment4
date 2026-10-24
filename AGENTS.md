@@ -43,7 +43,7 @@ Open-Meteo (no key) is called from the browser, not from our server. Decided 23 
 Only the destination is saved, never the forecast. "Weather data by Open-Meteo.com" links to open-meteo.com next to the weather.
 
 ## Design
-The Departures theme: boarding passes, airport signage, the navy band, amber, B612 and Barlow Condensed. The accent color is for the primary action only.
+The Departures theme: boarding passes, airport signage, the navy band, amber, B612 and Barlow Condensed. The accent color is for the primary action only. With the device set to dark, "Night flight": the same band, amber and accent, with a dark page and cards; colors come only from the tokens in `globals.css`, which both themes define.
 
 ## Flows
 First visit (useful right away, never an empty dead end) → main task (build and tick off a packing list) → coming back (it remembers me, with a reason to return).
@@ -58,7 +58,7 @@ Shared components for buttons, inputs, fields (label + error), cards, and naviga
 The person always knows where they are and how to go back.
 
 ## Accessibility
-Everything works with a keyboard, visible focus ring, real labels, text contrast at least 4.5:1, checked by script. Never use color alone to convey state.
+Everything works with a keyboard, visible focus ring, real labels, text contrast at least 4.5:1 in both themes, checked by script. Never use color alone to convey state.
 
 ## Motion
 Purposeful and quick (150 to 300ms) and never blocking input, using CSS, the Web Animations API or view transitions. With prefers-reduced-motion: no movement, instant state changes.
