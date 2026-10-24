@@ -10,7 +10,7 @@ import { Notice } from "@/components/Notice";
 import { Page } from "@/components/Page";
 import { SectionHeading } from "@/components/SectionHeading";
 import { tripCodes } from "@/lib/codes";
-import { clearFlash, peekFlash } from "@/lib/flash";
+import { useFlash } from "@/lib/flash";
 import { isUntouchedStarters } from "@/lib/starters";
 import { addStarterTripsBack, useStorage } from "@/lib/storage";
 import { tripTitleTransition, welcomeBackCount, type Trip } from "@/lib/trips";
@@ -45,15 +45,12 @@ export function MyTrips() {
 
   // A message from the page before, like "Deleted Beach weekend". It takes focus
   // once, so it's read out and keyboard focus isn't lost.
-  const [flash] = useState(peekFlash);
+  const flash = useFlash();
   const flashRef = useRef<HTMLDivElement>(null);
   const ready = storage.status === "ready";
   useEffect(() => {
-    clearFlash();
-  }, []);
-  useEffect(() => {
-    if (ready) flashRef.current?.focus();
-  }, [ready]);
+    if (ready && flash) flashRef.current?.focus();
+  }, [ready, flash]);
 
   if (storage.status === "failed") {
     return (
