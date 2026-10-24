@@ -131,6 +131,20 @@ export const MAX_TRIP_NAME = 40;
 export type TripNameProblem = { kind: "empty" } | { kind: "long" } | { kind: "duplicate"; trip: Trip };
 
 // Why a trip name can't be used, or null when it can.
+// A free name for a copy: "Beach weekend copy", then "Beach weekend copy 2" and so on.
+// A name too long to take it loses its last words, not part of one.
+export function copyName(name: string, trips: Trip[]) {
+  const clean = cleanName(name);
+  for (let n = 1; ; n++) {
+    const suffix = n === 1 ? " copy" : ` copy ${n}`;
+    const room = MAX_TRIP_NAME - suffix.length;
+    const fits = clean.slice(0, room);
+    const cut = clean.length <= room || clean[room] === " " ? fits : fits.replace(/\s+\S*$/, "") || fits;
+    const candidate = `${cut.trimEnd()}${suffix}`;
+    if (!tripNameProblem(candidate, trips)) return candidate;
+  }
+}
+
 export function tripNameProblem(name: string, trips: Trip[]): TripNameProblem | null {
   const clean = cleanName(name);
   if (clean === "") return { kind: "empty" };

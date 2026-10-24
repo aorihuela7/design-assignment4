@@ -331,6 +331,60 @@ export function setDestination(tripId: string, destination: Destination | null) 
   }, false);
 }
 
+// A copy of a trip to pack from again: the name given, the same destination, and
+// every item unticked and no longer New, in the same order. Two writes, the trip and
+// then its items; if the items don't save, the copy is deleted again, so no empty
+// trip is left behind.
+export function duplicateTrip(sourceId: string, id: string, name: string) {
+  return enqueue<SaveResult>(async (owner) => {
+    const source = shownTrips().find((trip) => trip.id === sourceId);
+    if (!source) return "failed";
+    const { destination } = source;
+    try {
+      await owner.db
+        .from("trips")
+        .insert({
+          id,
+          name,
+          destination_name: destination?.name ?? null,
+          destination_country: destination?.country ?? null,
+          latitude: destination?.latitude ?? null,
+          longitude: destination?.longitude ?? null,
+          timezone: destination?.timezone ?? null,
+        })
+        .throwOnError();
+    } catch (error) {
+      return whyNotSaved(owner, error, (trips) => tripNameProblem(name, trips)?.kind === "duplicate");
+    }
+    try {
+      if (source.items.length > 0) {
+        // Times 1 ms apart keep the items in the order they're listed in.
+        const start = Date.now();
+        await owner.db
+          .from("items")
+          .insert(
+            source.items.map((item, i) => ({
+              trip_id: id,
+              name: item.name,
+              section: item.section,
+              packed: false,
+              is_new: false,
+              created_at: new Date(start + i).toISOString(),
+            })),
+          )
+          .throwOnError();
+      }
+      const trips = await fetchTrips(owner.db);
+      commit(owner, () => trips);
+      return "saved";
+    } catch (error) {
+      console.error(error);
+      await owner.db.from("trips").delete().eq("id", id);
+      return "failed";
+    }
+  }, "failed");
+}
+
 // Its items go with it (on delete cascade).
 export function deleteTrip(tripId: string) {
   return enqueue(async (owner) => {

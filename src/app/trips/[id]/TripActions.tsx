@@ -21,14 +21,15 @@ type TripOptionsProps = {
   // Where focus goes back to when the menu, or what it opened, closes.
   buttonRef: RefObject<HTMLButtonElement | null>;
   onRename: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 };
 
-// "Trip options" beside the trip's title on the band: Rename trip and Delete trip, both
-// rare, so tucked away. A button that opens a short list of buttons (not a modal):
+// "Trip options" beside the trip's title on the band: Rename trip, Duplicate trip and
+// Delete trip, all rare, so tucked away. A button that opens a short list of buttons (not a modal):
 // Escape closes it and puts focus back on the button; leaving it with Tab, or clicking
 // anywhere else, closes it too.
-export function TripOptions({ buttonRef, onRename, onDelete }: TripOptionsProps) {
+export function TripOptions({ buttonRef, onRename, onDuplicate, onDelete }: TripOptionsProps) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const box = useRef<HTMLDivElement>(null);
@@ -88,6 +89,7 @@ export function TripOptions({ buttonRef, onRename, onDelete }: TripOptionsProps)
           className="absolute top-full left-0 z-40 mt-1 flex w-52 flex-col rounded border border-ink bg-surface px-3 py-1 motion-safe:animate-reveal"
         >
           <TextButton onClick={() => choose(onRename)}>Rename trip</TextButton>
+          <TextButton onClick={() => choose(onDuplicate)}>Duplicate trip</TextButton>
           <TextButton onClick={() => choose(onDelete)}>Delete trip</TextButton>
         </div>
       )}

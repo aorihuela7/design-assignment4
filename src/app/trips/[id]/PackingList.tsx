@@ -21,6 +21,7 @@ import {
   clearTicks,
   createId,
   deleteTrip,
+  duplicateTrip,
   editItem,
   removeItem,
   renameTrip,
@@ -31,6 +32,7 @@ import {
   type SaveResult,
 } from "@/lib/storage";
 import {
+  copyName,
   groupBySection,
   isAllPacked,
   SECTIONS,
@@ -135,6 +137,8 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
   // What Trip options opened: Rename and Delete show in place, above the list.
   const [options, setOptions] = useState<"idle" | "rename" | "delete">("idle");
   const optionsButton = useRef<HTMLButtonElement>(null);
+  // Set while Duplicate trip saves, so a second press doesn't make a second copy.
+  const duplicating = useRef(false);
 
   const trip = storage.status === "ready" ? storage.trips.find((t) => t.id === id) : undefined;
   const forecast = useForecast(trip?.destination ?? null);
@@ -331,6 +335,22 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
     if (result === "saved") setAnnouncement(`Renamed to ${name}`);
     return result;
   };
+  // A copy to pack from again, opened once it's saved; its name says what it is.
+  const duplicate = async () => {
+    if (duplicating.current) return;
+    duplicating.current = true;
+    const { name } = trip;
+    const id = createId();
+    setAnnouncement(`Copying ${name}…`);
+    const result = await duplicateTrip(tripId, id, copyName(name, storage.trips));
+    duplicating.current = false;
+    if (result === "saved") {
+      router.push(`/trips/${id}`);
+      return;
+    }
+    setFeedback({ text: "Not copied. Check your connection", failed: true });
+    focusCount();
+  };
   // Once deleted: back to My trips, which says what was deleted and puts focus on that message.
   const deleteAndLeave = async () => {
     const { name } = trip;
@@ -365,6 +385,7 @@ export function PackingList({ params }: { params: Promise<{ id: string }> }) {
         <TripOptions
           buttonRef={optionsButton}
           onRename={() => setOptions("rename")}
+          onDuplicate={duplicate}
           onDelete={() => setOptions("delete")}
         />
       }
